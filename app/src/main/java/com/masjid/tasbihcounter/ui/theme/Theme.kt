@@ -60,12 +60,15 @@ fun MasjidTasbihCounterTheme(
     themeSetting: ThemeSetting = ThemeSetting.SYSTEM,
     content: @Composable () -> Unit
 ) {
+    // ## यहाँ पर बदलाव किया गया है ##
+    val useDarkTheme = isSystemInDarkTheme() // पहले बाहर कॉल किया
+
     val colorScheme = when (themeSetting) {
         ThemeSetting.LIGHT -> LightColorScheme
         ThemeSetting.DARK -> DarkColorScheme
         ThemeSetting.MECCA_MIDNIGHT -> MeccaMidnightColorScheme
         ThemeSetting.RETRO_ARCADE -> RetroArcadeColorScheme
-        ThemeSetting.SYSTEM -> if (isSystemInDarkTheme()) DarkColorScheme else LightColorScheme
+        ThemeSetting.SYSTEM -> if (useDarkTheme) DarkColorScheme else LightColorScheme // फिर यहाँ इस्तेमाल किया
     }
 
     val view = LocalView.current
@@ -73,11 +76,12 @@ fun MasjidTasbihCounterTheme(
         SideEffect {
             val window = (view.context as Activity).window
             window.statusBarColor = colorScheme.background.toArgb()
-            // Yahan par naya case add kiya gaya hai
+
+            // ## और यहाँ भी बदलाव किया गया है ##
             val isLight = when (themeSetting) {
                 ThemeSetting.LIGHT -> true
                 ThemeSetting.DARK, ThemeSetting.MECCA_MIDNIGHT, ThemeSetting.RETRO_ARCADE -> false
-                ThemeSetting.SYSTEM -> !isSystemInDarkTheme()
+                ThemeSetting.SYSTEM -> !useDarkTheme // उस वेरिएबल का इस्तेमाल किया
             }
             WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = isLight
         }

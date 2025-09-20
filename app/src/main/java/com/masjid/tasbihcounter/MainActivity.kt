@@ -88,7 +88,8 @@ fun TasbihApp(mainViewModel: MainViewModel = viewModel()) {
                     },
                     onAddTasbih = { name, target -> mainViewModel.addTasbih(name, target) },
                     onDeleteTasbih = { mainViewModel.deleteTasbih(it.id) },
-                    onBack = { if (activeTasbih != null) currentScreen = Screen.COUNTER }
+                    // -- FIX IS ON THIS LINE --
+                    onBack = { if (uiState.tasbihList.isNotEmpty()) currentScreen = Screen.COUNTER }
                 )
             }
             Screen.COUNTER -> {
@@ -103,6 +104,7 @@ fun TasbihApp(mainViewModel: MainViewModel = viewModel()) {
                         onNavigateToThemeCustomization = { currentScreen = Screen.THEME_CUSTOMIZATION }
                     )
                 } else {
+                    // If there's no active tasbih, go to the list to create one.
                     LaunchedEffect(Unit){
                         currentScreen = Screen.LIST
                     }
