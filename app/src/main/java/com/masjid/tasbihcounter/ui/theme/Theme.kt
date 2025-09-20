@@ -13,14 +13,46 @@ import androidx.core.view.WindowCompat
 import com.masjid.tasbihcounter.ThemeSetting
 
 private val DarkColorScheme = darkColorScheme(
-    primary = Color(0xFFBB86FC), background = Color(0xFF121212), surface = Color(0xFF1E1E1E),
-    onPrimary = Color.Black, onBackground = Color.White, onSurface = Color.White,
-    surfaceVariant = Color(0xFF2C2C2C)
+    primary = Purple80,
+    secondary = PurpleGrey80,
+    tertiary = Pink80,
+    background = Color(0xFF121212),
+    surface = Color(0xFF1E1E1E),
+    onBackground = Color.White,
+    onSurface = Color.White
 )
+
 private val LightColorScheme = lightColorScheme(
-    primary = Color(0xFF6200EE), background = Color(0xFFF0F0F0), surface = Color.White,
-    onPrimary = Color.White, onBackground = Color.Black, onSurface = Color.Black,
-    surfaceVariant = Color(0xFFE0E0E0)
+    primary = Purple40,
+    secondary = PurpleGrey40,
+    tertiary = Pink40,
+    background = Color(0xFFF0F0F0),
+    surface = Color.White,
+    onBackground = Color.Black,
+    onSurface = Color.Black
+)
+
+private val MeccaMidnightColorScheme = darkColorScheme(
+    primary = KaabaGold,
+    secondary = FajrBlue,
+    tertiary = HaramWhite,
+    background = MeccaNight,
+    surface = StoneGray,
+    onPrimary = MeccaNight,
+    onSecondary = HaramWhite,
+    onTertiary = MeccaNight,
+    onBackground = HaramWhite,
+    onSurface = HaramWhite
+)
+private val RetroArcadeColorScheme = darkColorScheme(
+    primary = NeonPink,
+    secondary = NeonCyan,
+    background = ArcadeBlack,
+    surface = ArcadeGray,
+    onPrimary = ArcadeBlack,
+    onSecondary = ArcadeBlack,
+    onBackground = Color.White,
+    onSurface = Color.White
 )
 
 @Composable
@@ -28,19 +60,26 @@ fun MasjidTasbihCounterTheme(
     themeSetting: ThemeSetting = ThemeSetting.SYSTEM,
     content: @Composable () -> Unit
 ) {
-    val darkTheme = when(themeSetting) {
-        ThemeSetting.LIGHT -> false
-        ThemeSetting.DARK -> true
-        ThemeSetting.SYSTEM -> isSystemInDarkTheme()
+    val colorScheme = when (themeSetting) {
+        ThemeSetting.LIGHT -> LightColorScheme
+        ThemeSetting.DARK -> DarkColorScheme
+        ThemeSetting.MECCA_MIDNIGHT -> MeccaMidnightColorScheme
+        ThemeSetting.RETRO_ARCADE -> RetroArcadeColorScheme
+        ThemeSetting.SYSTEM -> if (isSystemInDarkTheme()) DarkColorScheme else LightColorScheme
     }
-    val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
 
     val view = LocalView.current
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
             window.statusBarColor = colorScheme.background.toArgb()
-            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
+            // Yahan par naya case add kiya gaya hai
+            val isLight = when (themeSetting) {
+                ThemeSetting.LIGHT -> true
+                ThemeSetting.DARK, ThemeSetting.MECCA_MIDNIGHT, ThemeSetting.RETRO_ARCADE -> false
+                ThemeSetting.SYSTEM -> !isSystemInDarkTheme()
+            }
+            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = isLight
         }
     }
 

@@ -13,6 +13,7 @@ data class AppSettings(
     val isLeftHanded: Boolean = false
 )
 
+// Path: app/src/main/java/com/masjid/tasbihcounter/AppSettings.kt
 enum class ThemeSetting {
-    LIGHT, DARK, SYSTEM
+    LIGHT, DARK, SYSTEM, MECCA_MIDNIGHT, RETRO_ARCADE
 }

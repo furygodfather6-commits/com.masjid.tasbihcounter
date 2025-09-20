@@ -1,6 +1,7 @@
 // Path: app/src/main/java/com/masjid/tasbihcounter/MainActivity.kt
 package com.masjid.tasbihcounter
-
+import androidx.compose.material.icons.filled.ColorLens
+import com.masjid.tasbihcounter.ui.theme.RetroTypography
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -8,7 +9,6 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -18,9 +18,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -32,21 +30,20 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.masjid.tasbihcounter.ui.ThemeCustomizationScreen
 import com.masjid.tasbihcounter.ui.theme.MasjidTasbihCounterTheme
 import kotlinx.coroutines.launch
 
 // Navigation ke liye Screens
 enum class Screen {
-    LIST, COUNTER, SETTINGS
+    LIST, COUNTER, SETTINGS, THEME_CUSTOMIZATION
 }
 
 class MainActivity : ComponentActivity() {
@@ -65,11 +62,20 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TasbihApp(mainViewModel: MainViewModel = viewModel()) {
     val uiState by mainViewModel.uiState.collectAsStateWithLifecycle()
-    var currentScreen by remember { mutableStateOf(Screen.LIST) }
+    var currentScreen by remember { mutableStateOf(Screen.COUNTER) }
     val activeTasbih = uiState.tasbihList.find { it.id == uiState.activeTasbihId }
+
+    LaunchedEffect(activeTasbih, uiState.tasbihList) {
+        if (activeTasbih == null && uiState.tasbihList.isNotEmpty()) {
+            mainViewModel.selectTasbih(uiState.tasbihList.first().id)
+        } else if (uiState.tasbihList.isEmpty()){
+            currentScreen = Screen.LIST
+        }
+    }
 
     Surface(modifier = Modifier.fillMaxSize()) {
         when (currentScreen) {
@@ -82,7 +88,7 @@ fun TasbihApp(mainViewModel: MainViewModel = viewModel()) {
                     },
                     onAddTasbih = { name, target -> mainViewModel.addTasbih(name, target) },
                     onDeleteTasbih = { mainViewModel.deleteTasbih(it.id) },
-                    onNavigateToSettings = { currentScreen = Screen.SETTINGS }
+                    onBack = { if (activeTasbih != null) currentScreen = Screen.COUNTER }
                 )
             }
             Screen.COUNTER -> {
@@ -92,11 +98,14 @@ fun TasbihApp(mainViewModel: MainViewModel = viewModel()) {
                         settings = uiState.settings,
                         onIncrement = { mainViewModel.incrementActiveTasbih() },
                         onReset = { mainViewModel.resetActiveTasbih() },
-                        onBack = { currentScreen = Screen.LIST }
+                        onNavigateToSettings = { currentScreen = Screen.SETTINGS },
+                        onNavigateToList = { currentScreen = Screen.LIST },
+                        onNavigateToThemeCustomization = { currentScreen = Screen.THEME_CUSTOMIZATION }
                     )
                 } else {
-                    // Agar koi active tasbih nahi hai, toh list par wapas jaao
-                    LaunchedEffect(Unit) { currentScreen = Screen.LIST }
+                    LaunchedEffect(Unit){
+                        currentScreen = Screen.LIST
+                    }
                 }
             }
             Screen.SETTINGS -> {
@@ -104,7 +113,14 @@ fun TasbihApp(mainViewModel: MainViewModel = viewModel()) {
                     settings = uiState.settings,
                     onThemeChange = { mainViewModel.updateTheme(it) },
                     onVibrationToggle = { mainViewModel.toggleVibration(it) },
-                    onBack = { currentScreen = Screen.LIST }
+                    onBack = { currentScreen = Screen.COUNTER }
+                )
+            }
+            Screen.THEME_CUSTOMIZATION -> {
+                ThemeCustomizationScreen(
+                    settings = uiState.settings,
+                    onThemeChange = { mainViewModel.updateTheme(it) },
+                    onBack = { currentScreen = Screen.COUNTER }
                 )
             }
         }
@@ -119,7 +135,7 @@ fun TasbihListScreen(
     onSelectTasbih: (Tasbih) -> Unit,
     onAddTasbih: (String, Int) -> Unit,
     onDeleteTasbih: (Tasbih) -> Unit,
-    onNavigateToSettings: () -> Unit
+    onBack: () -> Unit
 ) {
     var showAddDialog by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf<Tasbih?>(null) }
@@ -160,9 +176,11 @@ fun TasbihListScreen(
         topBar = {
             TopAppBar(
                 title = { Text("My Tasbih Collection") },
-                actions = {
-                    IconButton(onClick = onNavigateToSettings) {
-                        Icon(Icons.Default.Settings, contentDescription = "Settings")
+                navigationIcon = {
+                    if (tasbihList.isNotEmpty()) {
+                        IconButton(onClick = onBack) {
+                            Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        }
                     }
                 }
             )
@@ -173,19 +191,25 @@ fun TasbihListScreen(
             }
         }
     ) { padding ->
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            items(tasbihList) { tasbih ->
-                TasbihListItem(
-                    tasbih = tasbih,
-                    onClick = { onSelectTasbih(tasbih) },
-                    onLongClick = { showDeleteDialog = tasbih }
-                )
+        if (tasbihList.isEmpty()) {
+            Box(modifier = Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
+                Text("No tasbih added yet. Tap '+' to add one.")
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                items(tasbihList) { tasbih ->
+                    TasbihListItem(
+                        tasbih = tasbih,
+                        onClick = { onSelectTasbih(tasbih) },
+                        onLongClick = { showDeleteDialog = tasbih }
+                    )
+                }
             }
         }
     }
@@ -210,7 +234,7 @@ fun TasbihListItem(tasbih: Tasbih, onClick: () -> Unit, onLongClick: () -> Unit)
                 Text(
                     "${tasbih.count} / ${tasbih.target}",
                     fontSize = 16.sp,
-                    color = Color.Gray
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                 )
             }
             Box(contentAlignment = Alignment.Center) {
@@ -226,13 +250,16 @@ fun TasbihListItem(tasbih: Tasbih, onClick: () -> Unit, onLongClick: () -> Unit)
 }
 
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CounterScreen(
     tasbih: Tasbih,
     settings: AppSettings,
     onIncrement: () -> Unit,
     onReset: () -> Unit,
-    onBack: () -> Unit
+    onNavigateToList: () -> Unit,
+    onNavigateToSettings: () -> Unit,
+    onNavigateToThemeCustomization: () -> Unit
 ) {
     val haptic = LocalHapticFeedback.current
     val coroutineScope = rememberCoroutineScope()
@@ -250,79 +277,105 @@ fun CounterScreen(
         label = "progressAnimation"
     )
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xFF101010))
-            .systemBarsPadding(),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        IconButton(onClick = onBack, modifier = Modifier.align(Alignment.Start)) {
-            Icon(Icons.Default.ArrowBack, contentDescription = "Back to List", tint = Color.White)
-        }
+    // YEH NAYA BADLAV HAI
+    val typography = if (settings.theme == ThemeSetting.RETRO_ARCADE) {
+        RetroTypography
+    } else {
+        MaterialTheme.typography
+    }
 
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(0.3f),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = tasbih.name,
-                fontSize = 40.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.White.copy(alpha = 0.8f)
-            )
-        }
-
-        Box(
-            modifier = Modifier
-                .size(300.dp)
-                .clickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = null,
-                    onClick = {
-                        onIncrement()
-                        if (settings.isVibrationOn) {
-                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                        }
-                        coroutineScope.launch {
-                            pulse.snapTo(1.1f)
-                            pulse.animateTo(1f, animationSpec = spring(stiffness = Spring.StiffnessLow))
-                        }
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("") },
+                actions = {
+                    IconButton(onClick = onNavigateToList) {
+                        Icon(Icons.Default.List, contentDescription = "Tasbih List", tint = MaterialTheme.colorScheme.onBackground)
                     }
-                ),
-            contentAlignment = Alignment.Center
-        ) {
-            AuroraRing(
-                modifier = Modifier.size(300.dp),
-                progress = animatedProgress,
-                pulse = pulse.value
+                    IconButton(onClick = onNavigateToThemeCustomization) {
+                        Icon(Icons.Filled.ColorLens, contentDescription = "Customize Theme", tint = MaterialTheme.colorScheme.onBackground)
+                    }
+                    IconButton(onClick = onNavigateToSettings) {
+                        Icon(Icons.Default.Settings, contentDescription = "Settings", tint = MaterialTheme.colorScheme.onBackground)
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
             )
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        },
+        containerColor = MaterialTheme.colorScheme.background
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .systemBarsPadding(),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(0.3f),
+                contentAlignment = Alignment.Center
+            ) {
                 Text(
-                    text = "$animatedCount",
-                    fontSize = 100.sp,
-                    fontWeight = FontWeight.Light,
-                    color = Color.White
-                )
-                Text(
-                    text = "Target: ${tasbih.target}",
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Light,
-                    color = Color.White.copy(alpha = 0.7f)
+                    text = tasbih.name,
+                    style = typography.displayMedium, // Naya font yahan istemal hoga
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f)
                 )
             }
-        }
 
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(0.2f),
-            contentAlignment = Alignment.Center
-        ) {
-            TextButton(onClick = onReset) {
-                Text("Reset", color = Color.White.copy(alpha = 0.7f), fontSize = 16.sp)
+            Box(
+                modifier = Modifier
+                    .size(300.dp)
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        onClick = {
+                            onIncrement()
+                            if (settings.isVibrationOn) {
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            }
+                            coroutineScope.launch {
+                                pulse.snapTo(1.1f)
+                                pulse.animateTo(1f, animationSpec = spring(stiffness = Spring.StiffnessLow))
+                            }
+                        }
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                AuroraRing(
+                    modifier = Modifier.size(300.dp),
+                    progress = animatedProgress,
+                    pulse = pulse.value,
+                    colors = listOf(
+                        MaterialTheme.colorScheme.primary,
+                        MaterialTheme.colorScheme.secondary,
+                        MaterialTheme.colorScheme.tertiary
+                    )
+                )
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        text = "$animatedCount",
+                        style = typography.displayLarge, // Naya font yahan istemal hoga
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                    Text(
+                        text = "Target: ${tasbih.target}",
+                        style = typography.bodyLarge, // Naya font yahan istemal hoga
+                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
+                    )
+                }
+            }
+
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(0.2f),
+                contentAlignment = Alignment.Center
+            ) {
+                TextButton(onClick = onReset) {
+                    Text("Reset", color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f), fontSize = 16.sp)
+                }
             }
         }
     }
@@ -371,7 +424,12 @@ fun AddTasbihDialog(onDismiss: () -> Unit, onAdd: (String, Int) -> Unit) {
 }
 
 @Composable
-fun AuroraRing(modifier: Modifier = Modifier, progress: Float, pulse: Float) {
+fun AuroraRing(
+    modifier: Modifier = Modifier,
+    progress: Float,
+    pulse: Float,
+    colors: List<Color>
+) {
     val infiniteTransition = rememberInfiniteTransition(label = "aurora_rotation")
     val rotation by infiniteTransition.animateFloat(
         initialValue = 0f,
@@ -380,8 +438,10 @@ fun AuroraRing(modifier: Modifier = Modifier, progress: Float, pulse: Float) {
         label = "rotation"
     )
 
-    val colors = listOf(Color(0xFF03A9F4), Color(0xFF9C27B0), Color(0xFFF44336), Color(0xFF00E676))
     val brush = Brush.sweepGradient(colors)
+
+    // YEH BADLAV HAI: Humne color ko yahan pehle hi le liya
+    val innerRingColor = MaterialTheme.colorScheme.background.copy(alpha = 0.8f)
 
     Canvas(modifier = modifier.graphicsLayer {
         scaleX = pulse
@@ -399,7 +459,7 @@ fun AuroraRing(modifier: Modifier = Modifier, progress: Float, pulse: Float) {
         )
 
         drawArc(
-            color = Color(0xFF191919),
+            color = innerRingColor, // Aur yahan us variable ka istemal kiya (YEHI LINE 454 THI)
             startAngle = -90f,
             sweepAngle = 360f,
             useCenter = false,
@@ -445,9 +505,12 @@ fun SettingsScreen(
             item {
                 SegmentedButtonSetting(
                     title = "App Theme",
-                    options = ThemeSetting.values().map { it.name },
-                    selectedOption = settings.theme.name,
-                    onOptionSelect = { onThemeChange(ThemeSetting.valueOf(it)) }
+                    options = ThemeSetting.values().map { it.name.replace("_", " ") },
+                    selectedOption = settings.theme.name.replace("_", " "),
+                    onOptionSelect = {
+                        val selectedTheme = ThemeSetting.valueOf(it.replace(" ", "_"))
+                        onThemeChange(selectedTheme)
+                    }
                 )
             }
             item { Divider(modifier = Modifier.padding(vertical = 8.dp)) }
