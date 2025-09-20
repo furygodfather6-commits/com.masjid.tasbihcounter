@@ -14,6 +14,7 @@ import com.masjid.tasbihcounter.ui.screens.CounterScreen
 import com.masjid.tasbihcounter.ui.screens.SettingsScreen
 import com.masjid.tasbihcounter.ui.screens.TasbihListScreen
 import com.masjid.tasbihcounter.ui.screens.Screen
+import com.masjid.tasbihcounter.ui.screens.CelestialCounterScreen
 import com.masjid.tasbihcounter.ui.ThemeCustomizationScreen
 import com.masjid.tasbihcounter.ui.theme.MasjidTasbihCounterTheme
 import kotlinx.coroutines.launch
@@ -70,7 +71,8 @@ fun TasbihApp(mainViewModel: MainViewModel = viewModel()) {
                         onReset = { mainViewModel.resetActiveTasbih() },
                         onNavigateToSettings = { currentScreen = Screen.SETTINGS },
                         onNavigateToList = { currentScreen = Screen.LIST },
-                        onNavigateToThemeCustomization = { currentScreen = Screen.THEME_CUSTOMIZATION }
+                        onNavigateToThemeCustomization = { currentScreen = Screen.THEME_CUSTOMIZATION },
+                        onNavigateToCelestial = { currentScreen = Screen.CELESTIAL_COUNTER }
                     )
                 } else {
                     LaunchedEffect(Unit){
@@ -92,6 +94,21 @@ fun TasbihApp(mainViewModel: MainViewModel = viewModel()) {
                     onThemeChange = { mainViewModel.updateTheme(it) },
                     onBack = { currentScreen = Screen.COUNTER }
                 )
+            }
+            Screen.CELESTIAL_COUNTER -> {
+                if (activeTasbih != null) {
+                    CelestialCounterScreen(
+                        tasbih = activeTasbih,
+                        settings = uiState.settings,
+                        onIncrement = { mainViewModel.incrementActiveTasbih() },
+                        onReset = { mainViewModel.resetActiveTasbih() },
+                        onBack = { currentScreen = Screen.COUNTER }
+                    )
+                } else {
+                    LaunchedEffect(Unit){
+                        currentScreen = Screen.LIST
+                    }
+                }
             }
         }
     }

@@ -3,5 +3,5 @@ package com.masjid.tasbihcounter.ui.screens
 
 // Navigation ke liye Screens
 enum class Screen {
-    LIST, COUNTER, SETTINGS, THEME_CUSTOMIZATION
+    LIST, COUNTER, SETTINGS, THEME_CUSTOMIZATION, CELESTIAL_COUNTER
 }

@@ -10,6 +10,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ColorLens
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -25,7 +26,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.masjid.tasbihcounter.AppSettings
 import com.masjid.tasbihcounter.Tasbih
-import com.masjid.tasbihcounter.ThemeSetting
+import com.masjid.tasbihcounter.ThemeSetting // Yeh line jodi gayi hai
 import com.masjid.tasbihcounter.ui.theme.RetroTypography
 import kotlinx.coroutines.launch
 
@@ -38,7 +39,8 @@ fun CounterScreen(
     onReset: () -> Unit,
     onNavigateToList: () -> Unit,
     onNavigateToSettings: () -> Unit,
-    onNavigateToThemeCustomization: () -> Unit
+    onNavigateToThemeCustomization: () -> Unit,
+    onNavigateToCelestial: () -> Unit
 ) {
     val haptic = LocalHapticFeedback.current
     val coroutineScope = rememberCoroutineScope()
@@ -75,6 +77,9 @@ fun CounterScreen(
                     }
                     IconButton(onClick = onNavigateToSettings) {
                         Icon(Icons.Default.Settings, contentDescription = "Settings", tint = MaterialTheme.colorScheme.onBackground)
+                    }
+                    IconButton(onClick = onNavigateToCelestial) {
+                        Icon(Icons.Default.Star, contentDescription = "Celestial Counter", tint = MaterialTheme.colorScheme.onBackground)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
