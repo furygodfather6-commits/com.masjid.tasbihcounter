@@ -8,10 +8,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddCircle
+import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Place
-import androidx.compose.material.icons.outlined.History
-import androidx.compose.material.icons.outlined.Home
-import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -66,13 +66,13 @@ fun HomeScreen(
                 NavigationBarItem(
                     selected = true,
                     onClick = { /* Already on Home */ },
-                    icon = { Icon(Icons.Outlined.Home, contentDescription = "Home") },
+                    icon = { Icon(Icons.Filled.Home, contentDescription = "Home") },
                     label = { Text("Home") }
                 )
                 NavigationBarItem(
                     selected = false,
                     onClick = onNavigateToHistory,
-                    icon = { Icon(Icons.Outlined.History, contentDescription = "History") },
+                    icon = { Icon(Icons.Filled.History, contentDescription = "History") },
                     label = { Text("History") }
                 )
                 NavigationBarItem(
@@ -90,7 +90,7 @@ fun HomeScreen(
                 NavigationBarItem(
                     selected = false,
                     onClick = onNavigateToSettings,
-                    icon = { Icon(Icons.Outlined.Settings, contentDescription = "Settings") },
+                    icon = { Icon(Icons.Filled.Settings, contentDescription = "Settings") },
                     label = { Text("Settings") }
                 )
             }
