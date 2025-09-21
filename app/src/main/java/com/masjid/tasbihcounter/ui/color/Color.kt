@@ -18,9 +18,15 @@ val NeonPink = Color(0xFFF400F4)
 val NeonCyan = Color(0xFF00E5FF)
 val ArcadeGray = Color(0xFF33313B)
 
-// ## YAHAN PAR NAYE COLORS ADD KIYE GAYE HAIN ##
 // Galaxy Dream Theme Colors
 val GalaxyNight = Color(0xFF0D0520)
 val PulsarPurple = Color(0xFF8A2BE2)
 val StardustSilver = Color(0xFFC0C0C0)
 val NebulaPink = Color(0xFFFF00FF)
+
+// ## YAHAN PAR NAYE COLORS ADD KIYE GAYE HAIN ##
+// Nebula Burst Theme Colors
+val NebulaDeepSpace = Color(0xFF000020)
+val SupernovaRed = Color(0xFFFF4500)
+val CosmicDust = Color(0xFFFFD700)
+val HyperdriveBlue = Color(0xFF00BFFF)

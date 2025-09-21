@@ -43,7 +43,6 @@ private val RetroArcadeColorScheme = darkColorScheme(
     onSurface = Color.White
 )
 
-// ## YAHAN PAR NAYA COLOR SCHEME ADD KIYA GAYA HAI ##
 private val GalaxyDreamColorScheme = darkColorScheme(
     primary = PulsarPurple,
     secondary = NebulaPink,
@@ -51,6 +50,17 @@ private val GalaxyDreamColorScheme = darkColorScheme(
     background = GalaxyNight,
     onBackground = Color.White,
     surface = GalaxyNight,
+    onSurface = Color.White
+)
+
+// ## YAHAN PAR NAYA COLOR SCHEME ADD KIYA GAYA HAI ##
+private val NebulaBurstColorScheme = darkColorScheme(
+    primary = SupernovaRed,
+    secondary = CosmicDust,
+    tertiary = HyperdriveBlue,
+    background = NebulaDeepSpace,
+    onBackground = Color.White,
+    surface = NebulaDeepSpace,
     onSurface = Color.White
 )
 
@@ -64,7 +74,8 @@ fun MasjidTasbihCounterTheme(
     val colorScheme = when (themeSetting) {
         ThemeSetting.LIGHT -> LightColorScheme
         ThemeSetting.RETRO_ARCADE -> RetroArcadeColorScheme
-        ThemeSetting.GALAXY_DREAM -> GalaxyDreamColorScheme // New theme case
+        ThemeSetting.GALAXY_DREAM -> GalaxyDreamColorScheme
+        ThemeSetting.NEBULA_BURST -> NebulaBurstColorScheme // New theme case
         ThemeSetting.SYSTEM -> if (useDarkTheme) DarkColorScheme else LightColorScheme
     }
 
@@ -76,7 +87,7 @@ fun MasjidTasbihCounterTheme(
 
             val isLight = when (themeSetting) {
                 ThemeSetting.LIGHT -> true
-                ThemeSetting.RETRO_ARCADE, ThemeSetting.GALAXY_DREAM -> false // New theme case
+                ThemeSetting.RETRO_ARCADE, ThemeSetting.GALAXY_DREAM, ThemeSetting.NEBULA_BURST -> false // New theme case
                 ThemeSetting.SYSTEM -> !useDarkTheme
             }
             WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = isLight

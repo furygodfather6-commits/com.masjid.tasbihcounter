@@ -19,5 +19,5 @@ data class AppSettings(
 )
 
 enum class ThemeSetting {
-    LIGHT, SYSTEM, RETRO_ARCADE, GALAXY_DREAM // New theme added
+    LIGHT, SYSTEM, RETRO_ARCADE, GALAXY_DREAM, NEBULA_BURST // New theme added
 }

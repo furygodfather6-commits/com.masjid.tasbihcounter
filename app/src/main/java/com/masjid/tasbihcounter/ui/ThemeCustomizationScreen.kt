@@ -76,6 +76,7 @@ fun ThemeCard(
         ThemeSetting.SYSTEM -> listOf(Color.Gray, Color.White, Color.Black)
         ThemeSetting.RETRO_ARCADE -> listOf(ArcadeBlack, NeonPink, NeonCyan)
         ThemeSetting.GALAXY_DREAM -> listOf(GalaxyNight, PulsarPurple, NebulaPink)
+        ThemeSetting.NEBULA_BURST -> listOf(NebulaDeepSpace, SupernovaRed, CosmicDust)
     }
 
     Card(

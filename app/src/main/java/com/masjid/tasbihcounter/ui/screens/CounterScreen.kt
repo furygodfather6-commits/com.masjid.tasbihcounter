@@ -15,6 +15,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -23,9 +24,11 @@ import androidx.compose.ui.unit.sp
 import com.masjid.tasbihcounter.AppSettings
 import com.masjid.tasbihcounter.TasbihSequenceState
 import com.masjid.tasbihcounter.ThemeSetting
-import com.masjid.tasbihcounter.ui.theme.RetroTypography
+import com.masjid.tasbihcounter.ui.theme.*
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlin.math.cos
+import kotlin.math.sin
 import kotlin.random.Random
 
 // Data class for the new animation
@@ -34,6 +37,15 @@ data class Star(
     val y: Float,
     val radius: Float,
     val alpha: Float
+)
+
+data class Particle(
+    var x: Float,
+    var y: Float,
+    var speed: Float,
+    var angle: Float,
+    var alpha: Float,
+    val color: Color
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -102,7 +114,7 @@ fun CounterScreen(
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
             )
         },
-        containerColor = MaterialTheme.colorScheme.background
+        containerColor = if (settings.theme == ThemeSetting.NEBULA_BURST) NebulaDeepSpace else MaterialTheme.colorScheme.background
     ) { padding ->
         Column(
             modifier = Modifier
@@ -148,6 +160,13 @@ fun CounterScreen(
                 when (settings.theme) {
                     ThemeSetting.GALAXY_DREAM -> {
                         GalaxyDreamRing(
+                            modifier = Modifier.size(300.dp),
+                            progress = animatedProgress,
+                            pulse = pulse.value
+                        )
+                    }
+                    ThemeSetting.NEBULA_BURST -> {
+                        NebulaBurstRing(
                             modifier = Modifier.size(300.dp),
                             progress = animatedProgress,
                             pulse = pulse.value
@@ -222,6 +241,82 @@ fun CounterScreen(
 }
 
 @Composable
+fun NebulaBurstRing(modifier: Modifier = Modifier, progress: Float, pulse: Float) {
+    val particles = remember { mutableStateListOf<Particle>() }
+    val animationTrigger by rememberInfiniteTransition(label = "nebula_animation").animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(tween(2000), RepeatMode.Restart),
+        label = "animationTrigger"
+    )
+
+    LaunchedEffect(animationTrigger) {
+        if (particles.size < 100) {
+            particles.add(
+                Particle(
+                    x = 0.5f,
+                    y = 0.5f,
+                    speed = Random.nextFloat() * 0.02f + 0.01f,
+                    angle = Random.nextFloat() * 360f,
+                    alpha = 1f,
+                    color = listOf(SupernovaRed, CosmicDust, HyperdriveBlue).random()
+                )
+            )
+        }
+
+        particles.forEach {
+            it.x += cos(Math.toRadians(it.angle.toDouble())).toFloat() * it.speed
+            it.y += sin(Math.toRadians(it.angle.toDouble())).toFloat() * it.speed
+            it.alpha -= 0.01f
+        }
+        particles.removeAll { it.alpha <= 0 }
+    }
+
+    Canvas(modifier = modifier.graphicsLayer {
+        scaleX = pulse
+        scaleY = pulse
+    }) {
+        val width = size.width
+        val height = size.height
+
+        drawCircle(
+            brush = Brush.radialGradient(
+                colors = listOf(
+                    SupernovaRed.copy(alpha = 0.1f),
+                    CosmicDust.copy(alpha = 0.1f),
+                    Color.Transparent
+                )
+            ),
+            radius = size.minDimension / 2.2f,
+        )
+
+        particles.forEach {
+            drawCircle(
+                color = it.color,
+                center = Offset(it.x * width, it.y * height),
+                radius = 2.dp.toPx(),
+                alpha = it.alpha
+            )
+        }
+
+        drawArc(
+            brush = Brush.sweepGradient(
+                listOf(
+                    SupernovaRed,
+                    CosmicDust,
+                    HyperdriveBlue,
+                    SupernovaRed
+                )
+            ),
+            startAngle = -90f,
+            sweepAngle = 360 * progress,
+            useCenter = false,
+            style = Stroke(width = 15.dp.toPx(), cap = StrokeCap.Round)
+        )
+    }
+}
+
+@Composable
 fun GalaxyDreamRing(modifier: Modifier = Modifier, progress: Float, pulse: Float) {
     val infiniteTransition = rememberInfiniteTransition(label = "galaxy_rotation")
     val rotation by infiniteTransition.animateFloat(
@@ -242,6 +337,10 @@ fun GalaxyDreamRing(modifier: Modifier = Modifier, progress: Float, pulse: Float
         }
     }
 
+    val primaryColor = MaterialTheme.colorScheme.primary
+    val secondaryColor = MaterialTheme.colorScheme.secondary
+    val tertiaryColor = MaterialTheme.colorScheme.tertiary
+
     Canvas(modifier = modifier.graphicsLayer {
         scaleX = pulse
         scaleY = pulse
@@ -258,43 +357,42 @@ fun GalaxyDreamRing(modifier: Modifier = Modifier, progress: Float, pulse: Float
             )
         }
 
-        drawIntoCanvas {
-            val paint = Paint().apply {
-                style = PaintingStyle.Stroke
-                strokeWidth = 20f
-            }
-            val frameworkPaint = paint.asFrameworkPaint()
-
-            frameworkPaint.color = Color.Transparent.toArgb()
-            frameworkPaint.setShadowLayer(30f, 0f, 0f, MaterialTheme.colorScheme.secondary.copy(alpha = 0.5f).toArgb())
-            it.drawCircle(center, size.minDimension / 2.5f, paint)
-
-            drawArc(
-                brush = Brush.sweepGradient(
-                    listOf(
-                        MaterialTheme.colorScheme.primary,
-                        MaterialTheme.colorScheme.secondary,
-                        MaterialTheme.colorScheme.primary
-                    )
-                ),
-                startAngle = -90f,
-                sweepAngle = 360 * progress,
-                useCenter = false,
-                style = Stroke(width = 25f, cap = StrokeCap.Round)
-            )
-
-            rotate(rotation) {
-                drawArc(
-                    color = MaterialTheme.colorScheme.tertiary,
-                    startAngle = 0f,
-                    sweepAngle = 120f,
-                    useCenter = false,
-                    style = Stroke(width = 5f, pathEffect = PathEffect.dashPathEffect(floatArrayOf(30f, 20f)))
+        drawCircle(
+            brush = Brush.radialGradient(
+                colors = listOf(
+                    secondaryColor.copy(alpha = 0.5f),
+                    Color.Transparent
                 )
-            }
+            ),
+            radius = size.minDimension / 2.5f,
+        )
+
+        drawArc(
+            brush = Brush.sweepGradient(
+                listOf(
+                    primaryColor,
+                    secondaryColor,
+                    primaryColor
+                )
+            ),
+            startAngle = -90f,
+            sweepAngle = 360 * progress,
+            useCenter = false,
+            style = Stroke(width = 25f, cap = StrokeCap.Round)
+        )
+
+        this.rotate(degrees = rotation) {
+            drawArc(
+                color = tertiaryColor,
+                startAngle = 0f,
+                sweepAngle = 120f,
+                useCenter = false,
+                style = Stroke(width = 5f, pathEffect = PathEffect.dashPathEffect(floatArrayOf(30f, 20f)))
+            )
         }
     }
 }
+
 
 @Composable
 fun AuroraRing(
