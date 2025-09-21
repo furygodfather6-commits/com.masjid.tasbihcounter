@@ -8,6 +8,7 @@ import androidx.lifecycle.viewModelScope
 import com.masjid.tasbihcounter.ui.screens.TasbihSession
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import kotlinx.serialization.InternalSerializationApi
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.util.Date
@@ -19,6 +20,7 @@ data class AppUiState(
     val history: List<TasbihSession> = emptyList()
 )
 
+@OptIn(InternalSerializationApi::class)
 class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _uiState = MutableStateFlow(AppUiState())
@@ -32,37 +34,41 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     init {
-        dataStore.data.map { preferences ->
-            val jsonString = preferences[TASBIH_LIST_KEY]
-            if (jsonString != null) Json.decodeFromString<List<Tasbih>>(jsonString)
-            else listOf(Tasbih(name = "SubhanAllah", target = 33))
-        }.onEach { tasbihList ->
-            _uiState.update {
-                it.copy(
-                    tasbihList = tasbihList,
-                    activeTasbihId = it.activeTasbihId ?: tasbihList.firstOrNull()?.id
-                )
+        viewModelScope.launch {
+            dataStore.data.map { preferences ->
+                val jsonString = preferences[TASBIH_LIST_KEY]
+                if (jsonString.isNullOrEmpty()) {
+                    listOf(
+                        Tasbih(name = "SubhanAllah", target = 33),
+                        Tasbih(name = "Alhamdulillah", target = 33),
+                        Tasbih(name = "Allahu Akbar", target = 34)
+                    )
+                } else {
+                    Json.decodeFromString<List<Tasbih>>(jsonString)
+                }
+            }.distinctUntilChanged().collect { tasbihList ->
+                _uiState.update { currentState ->
+                    val newActiveId = if (currentState.activeTasbihId == null || tasbihList.none { it.id == currentState.activeTasbihId }) {
+                        tasbihList.firstOrNull()?.id
+                    } else {
+                        currentState.activeTasbihId
+                    }
+                    currentState.copy(
+                        tasbihList = tasbihList,
+                        activeTasbihId = newActiveId
+                    )
+                }
             }
-        }.launchIn(viewModelScope)
+        }
 
-        dataStore.data.map { preferences ->
-            val jsonString = preferences[SETTINGS_KEY]
-            if (jsonString != null) Json.decodeFromString<AppSettings>(jsonString)
-            else AppSettings()
-        }.onEach { settings ->
-            _uiState.update { it.copy(settings = settings) }
-        }.launchIn(viewModelScope)
-
-        loadDummyHistory()
-    }
-
-    private fun loadDummyHistory() {
-        val dummyHistory = listOf(
-            TasbihSession(name = "SubhanAllah", date = Date(System.currentTimeMillis() - 86400000), count = 100),
-            TasbihSession(name = "Alhamdulillah", date = Date(System.currentTimeMillis() - 172800000), count = 33),
-            TasbihSession(name = "Allahu Akbar", date = Date(), count = 99)
-        )
-        _uiState.update { it.copy(history = dummyHistory) }
+        viewModelScope.launch {
+            dataStore.data.map { preferences ->
+                val jsonString = preferences[SETTINGS_KEY]
+                if (jsonString != null) Json.decodeFromString<AppSettings>(jsonString) else AppSettings()
+            }.collect { settings ->
+                _uiState.update { it.copy(settings = settings) }
+            }
+        }
     }
 
     private suspend fun saveSettings(settings: AppSettings) {
@@ -103,8 +109,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun addTasbih(name: String, target: Int) {
         viewModelScope.launch {
             val newList = _uiState.value.tasbihList + Tasbih(name = name, target = target)
+            _uiState.update { it.copy(tasbihList = newList, activeTasbihId = newList.last().id) }
             saveList(newList)
-            _uiState.update { it.copy(activeTasbihId = newList.last().id) }
         }
     }
 
@@ -114,18 +120,32 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun incrementActiveTasbih() {
         viewModelScope.launch {
-            val activeId = _uiState.value.activeTasbihId ?: return@launch
-            val newList = _uiState.value.tasbihList.map { tasbih ->
-                if (tasbih.id == activeId) {
-                    val newCount = if (tasbih.count + 1 >= tasbih.target) 0 else tasbih.count + 1
-                    tasbih.copy(count = newCount)
-                } else {
-                    tasbih
+            val currentState = _uiState.value
+            val activeId = currentState.activeTasbihId ?: return@launch
+            val tasbihList = currentState.tasbihList
+            val activeTasbihIndex = tasbihList.indexOfFirst { it.id == activeId }
+            if (activeTasbihIndex == -1) return@launch
+
+            val activeTasbih = tasbihList[activeTasbihIndex]
+
+            if (activeTasbih.count >= activeTasbih.target) return@launch
+
+            val newCount = activeTasbih.count + 1
+            val newList = tasbihList.toMutableList()
+            newList[activeTasbihIndex] = activeTasbih.copy(count = newCount)
+
+            var nextActiveId = activeId
+            if (newCount >= activeTasbih.target && (activeTasbih.name == "SubhanAllah" || activeTasbih.name == "Alhamdulillah")) {
+                if (activeTasbihIndex < tasbihList.size - 1) {
+                    nextActiveId = tasbihList[activeTasbihIndex + 1].id
                 }
             }
+
+            _uiState.value = currentState.copy(tasbihList = newList, activeTasbihId = nextActiveId)
             saveList(newList)
         }
     }
+
 
     fun resetActiveTasbih() {
         viewModelScope.launch {
@@ -133,17 +153,23 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             val newList = _uiState.value.tasbihList.map {
                 if (it.id == activeId) it.copy(count = 0) else it
             }
+            _uiState.update { it.copy(tasbihList = newList) }
             saveList(newList)
         }
     }
 
     fun deleteTasbih(id: Long) {
         viewModelScope.launch {
-            val newList = _uiState.value.tasbihList.filterNot { it.id == id }
-            saveList(newList)
-            if (_uiState.value.activeTasbihId == id) {
-                _uiState.update { it.copy(activeTasbihId = newList.firstOrNull()?.id) }
+            val currentList = _uiState.value.tasbihList
+            val newList = currentList.filterNot { it.id == id }
+            var newActiveId = _uiState.value.activeTasbihId
+
+            if (newActiveId == id) {
+                newActiveId = newList.firstOrNull()?.id
             }
+
+            _uiState.update { it.copy(tasbihList = newList, activeTasbihId = newActiveId) }
+            saveList(newList)
         }
     }
 }
