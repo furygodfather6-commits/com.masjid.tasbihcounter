@@ -1,6 +1,7 @@
 package com.masjid.tasbihcounter
 
 import android.os.Bundle
+import android.view.KeyEvent
 import androidx.activity.ComponentActivity
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.compose.setContent
@@ -16,11 +17,14 @@ import com.masjid.tasbihcounter.ui.screens.*
 import com.masjid.tasbihcounter.ui.theme.MasjidTasbihCounterTheme
 
 class MainActivity : ComponentActivity() {
+
+    private lateinit var mainViewModel: MainViewModel
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            val mainViewModel: MainViewModel = viewModel()
+            mainViewModel = viewModel()
             val uiState by mainViewModel.uiState.collectAsStateWithLifecycle()
             var currentScreen by remember { mutableStateOf(Screen.HOME) }
 
@@ -51,6 +55,17 @@ class MainActivity : ComponentActivity() {
                 )
             }
         }
+    }
+
+    override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
+        val settings = mainViewModel.uiState.value.settings
+        if (settings.additionalButtonControl == AdditionalButtonControl.VOLUME) {
+            if (keyCode == KeyEvent.KEYCODE_VOLUME_UP || keyCode == KeyEvent.KEYCODE_VOLUME_DOWN) {
+                mainViewModel.incrementSequenceCounter()
+                return true
+            }
+        }
+        return super.onKeyDown(keyCode, event)
     }
 }
 
@@ -119,8 +134,15 @@ fun TasbihApp(
             Screen.SETTINGS -> {
                 SettingsScreen(
                     settings = uiState.settings,
-                    onThemeChange = { viewModel.updateTheme(it) },
-                    onAdvancedThemeChange = { viewModel.updateAdvancedTheme(it) }, // New
+                    onThemeChange = { theme -> viewModel.updateTheme(theme) },
+                    onAdvancedThemeChange = { theme -> viewModel.updateAdvancedTheme(theme) },
+                    onVibrationModeChange = { mode -> viewModel.updateVibrationMode(mode) },
+                    onSoundModeChange = { mode -> viewModel.updateSoundMode(mode) },
+                    onVibrationStrengthChange = { strength -> viewModel.updateVibrationStrength(strength) },
+                    onCountingSpeedChange = { speed -> viewModel.updateCountingSpeed(speed) },
+                    onBackgroundCountingChange = { enabled -> viewModel.toggleBackgroundCounting(enabled) },
+                    onAdditionalButtonControlChange = { control -> viewModel.updateAdditionalButtonControl(control) },
+                    onFullScreenTapChange = { enabled -> viewModel.toggleFullScreenTap(enabled) },
                     onBack = { onScreenChange(Screen.HOME) }
                 )
             }

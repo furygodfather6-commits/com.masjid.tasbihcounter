@@ -13,16 +13,22 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.masjid.tasbihcounter.AdvancedTheme
-import com.masjid.tasbihcounter.AppSettings
-import com.masjid.tasbihcounter.ThemeSetting
+import com.masjid.tasbihcounter.*
+import java.text.DecimalFormat
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
     settings: AppSettings,
     onThemeChange: (ThemeSetting) -> Unit,
-    onAdvancedThemeChange: (AdvancedTheme) -> Unit, // New
+    onAdvancedThemeChange: (AdvancedTheme) -> Unit,
+    onVibrationModeChange: (VibrationMode) -> Unit,
+    onSoundModeChange: (SoundMode) -> Unit,
+    onVibrationStrengthChange: (Float) -> Unit,
+    onCountingSpeedChange: (Float) -> Unit,
+    onBackgroundCountingChange: (Boolean) -> Unit,
+    onAdditionalButtonControlChange: (AdditionalButtonControl) -> Unit,
+    onFullScreenTapChange: (Boolean) -> Unit,
     onBack: () -> Unit
 ) {
     Scaffold(
@@ -49,14 +55,13 @@ fun SettingsScreen(
                 SegmentedButtonSetting(
                     title = "App Theme",
                     options = ThemeSetting.values().map { it.name.replace("_", " ") },
-                    selectedOption = settings.theme.name.replace(" ", "_"),
+                    selectedOption = settings.theme.name.replace("_", " "),
                     onOptionSelect = {
                         val selectedTheme = ThemeSetting.valueOf(it.replace(" ", "_"))
                         onThemeChange(selectedTheme)
                     }
                 )
             }
-            // ## YAHAN PAR NAYA OPTION ADD KIYA GAYA HAI ##
             item {
                 SegmentedButtonSetting(
                     title = "Advanced Counter Theme",
@@ -75,25 +80,30 @@ fun SettingsScreen(
             item {
                 SegmentedButtonSetting(
                     title = "Vibration Mode",
-                    options = listOf("On Tap", "On Target", "Off"),
-                    selectedOption = "On Tap", // Placeholder
-                    onOptionSelect = { /* TODO */ }
+                    options = VibrationMode.values().map { it.name.replace("_", " ") },
+                    selectedOption = settings.vibrationMode.name.replace("_", " "),
+                    onOptionSelect = {
+                        val selectedMode = VibrationMode.valueOf(it.replace(" ", "_"))
+                        onVibrationModeChange(selectedMode)
+                    }
                 )
             }
             item {
-                var sliderPosition by remember { mutableStateOf(0.5f) }
                 SliderSettingItem(
                     title = "Vibration Strength",
-                    value = sliderPosition,
-                    onValueChange = { sliderPosition = it }
+                    value = settings.vibrationStrength,
+                    onValueChange = onVibrationStrengthChange
                 )
             }
             item {
                 SegmentedButtonSetting(
                     title = "Sound Mode",
-                    options = listOf("On Tap", "On Target", "Off"),
-                    selectedOption = "Off", // Placeholder
-                    onOptionSelect = { /* TODO */ }
+                    options = SoundMode.values().map { it.name.replace("_", " ") },
+                    selectedOption = settings.soundMode.name.replace("_", " "),
+                    onOptionSelect = {
+                        val selectedMode = SoundMode.valueOf(it.replace(" ", "_"))
+                        onSoundModeChange(selectedMode)
+                    }
                 )
             }
             item { HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp)) }
@@ -101,31 +111,44 @@ fun SettingsScreen(
             // Section 3: Counter Behavior
             item { SettingsGroup("Counter Behavior") }
             item {
-                SwitchSettingItem(
-                    title = "Limit Count Setting",
-                    checked = false, // Placeholder
-                    onCheckedChange = { /* TODO */ }
-                )
-            }
-            item {
-                SegmentedButtonSetting(
-                    title = "Counting Speed",
-                    options = listOf("Slow", "Normal", "Fast"),
-                    selectedOption = "Normal", // Placeholder
-                    onOptionSelect = { /* TODO */ }
+                val speedValue = 2.0f - settings.countingSpeed
+                val df = DecimalFormat("#.#")
+                SliderSettingItem(
+                    title = "Counting Speed (${df.format(settings.countingSpeed)}s)",
+                    value = speedValue,
+                    onValueChange = {
+                        onCountingSpeedChange(2.0f - it)
+                    },
+                    valueRange = 0.5f..1.9f
                 )
             }
             item {
                 SwitchSettingItem(
                     title = "Background Counting",
-                    checked = false, // Placeholder
-                    onCheckedChange = { /* TODO */ }
+                    checked = settings.backgroundCountingEnabled,
+                    onCheckedChange = onBackgroundCountingChange
+                )
+            }
+            item { HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp)) }
+
+            // Section 4: Additional Controls
+            item { SettingsGroup("Additional Controls") }
+            item {
+                SegmentedButtonSetting(
+                    title = "Count with Additional Buttons",
+                    options = AdditionalButtonControl.values().map { it.name.replace("_", " ") },
+                    selectedOption = settings.additionalButtonControl.name.replace("_", " "),
+                    onOptionSelect = {
+                        val selectedControl = AdditionalButtonControl.valueOf(it.replace(" ", "_"))
+                        onAdditionalButtonControlChange(selectedControl)
+                    }
                 )
             }
             item {
-                ClickableSettingItem(
-                    title = "Additional Settings",
-                    onClick = { /* TODO: Navigate to another screen */ }
+                SwitchSettingItem(
+                    title = "Full Screen Tap Counting",
+                    checked = settings.fullScreenTapEnabled,
+                    onCheckedChange = onFullScreenTapChange
                 )
             }
         }
@@ -183,7 +206,12 @@ fun SwitchSettingItem(title: String, checked: Boolean, onCheckedChange: (Boolean
 }
 
 @Composable
-fun SliderSettingItem(title: String, value: Float, onValueChange: (Float) -> Unit) {
+fun SliderSettingItem(
+    title: String,
+    value: Float,
+    onValueChange: (Float) -> Unit,
+    valueRange: ClosedFloatingPointRange<Float> = 0f..1f
+) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -192,7 +220,8 @@ fun SliderSettingItem(title: String, value: Float, onValueChange: (Float) -> Uni
         Text(title, fontSize = 16.sp)
         Slider(
             value = value,
-            onValueChange = onValueChange
+            onValueChange = onValueChange,
+            valueRange = valueRange
         )
     }
 }

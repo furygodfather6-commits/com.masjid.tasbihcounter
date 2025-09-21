@@ -73,17 +73,12 @@ fun HomeScreen(
                     icon = { Icon(Icons.Filled.ColorLens, contentDescription = "Theme") },
                     label = { Text("Theme") }
                 )
-
-                // ## YAHAN PAR BADLAAV KIYA GAYA HAI ##
-                // Icon aur Naam wapas "Counter" kar diya gaya hai.
-                // Click karne par yeh Advanced Tasbih Collection kholega.
                 NavigationBarItem(
                     selected = false,
                     onClick = onStartCounting,
                     icon = { Icon(Icons.Default.AddCircle, contentDescription = "Counter") },
                     label = { Text("Counter") }
                 )
-
                 NavigationBarItem(
                     selected = false,
                     onClick = onNavigateToProgress,
@@ -120,7 +115,6 @@ fun HomeScreen(
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 PaginationDots()
                 Spacer(modifier = Modifier.height(24.dp))
-                // Yeh button default counter (33/33/34) ko shuru karega
                 Button(
                     onClick = { onStartDefaultCounter() },
                     modifier = Modifier
@@ -134,7 +128,7 @@ fun HomeScreen(
                     )
                 ) {
                     Text(
-                        "Start Default Counter", // Naam badal diya gaya hai
+                        "Start Default Counter",
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
                         letterSpacing = (16 * 0.01).sp
@@ -145,7 +139,6 @@ fun HomeScreen(
     }
 }
 
-// Baaki ka code (TasbihIllustration, PaginationDots) waisa hi rahega
 @Composable
 fun TasbihIllustration(
     modifier: Modifier = Modifier,

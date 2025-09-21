@@ -176,16 +176,52 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    // ## YAHAN PAR NAYA FUNCTION ADD KIYA GAYA HAI ##
     fun updateAdvancedTheme(advancedTheme: AdvancedTheme) {
         viewModelScope.launch {
             saveSettings(_uiState.value.settings.copy(advancedTheme = advancedTheme))
         }
     }
 
-    fun toggleVibration(isOn: Boolean) {
+    fun updateVibrationMode(vibrationMode: VibrationMode) {
         viewModelScope.launch {
-            saveSettings(_uiState.value.settings.copy(isVibrationOn = isOn))
+            saveSettings(_uiState.value.settings.copy(vibrationMode = vibrationMode))
+        }
+    }
+
+    fun updateSoundMode(soundMode: SoundMode) {
+        viewModelScope.launch {
+            saveSettings(_uiState.value.settings.copy(soundMode = soundMode))
+        }
+    }
+
+    fun updateVibrationStrength(strength: Float) {
+        viewModelScope.launch {
+            saveSettings(_uiState.value.settings.copy(vibrationStrength = strength))
+        }
+    }
+
+    // ## NAYE FUNCTIONS ADD KIYE GAYE HAIN ##
+    fun updateCountingSpeed(speed: Float) {
+        viewModelScope.launch {
+            saveSettings(_uiState.value.settings.copy(countingSpeed = speed))
+        }
+    }
+
+    fun toggleBackgroundCounting(enabled: Boolean) {
+        viewModelScope.launch {
+            saveSettings(_uiState.value.settings.copy(backgroundCountingEnabled = enabled))
+        }
+    }
+
+    fun updateAdditionalButtonControl(control: AdditionalButtonControl) {
+        viewModelScope.launch {
+            saveSettings(_uiState.value.settings.copy(additionalButtonControl = control))
+        }
+    }
+
+    fun toggleFullScreenTap(enabled: Boolean) {
+        viewModelScope.launch {
+            saveSettings(_uiState.value.settings.copy(fullScreenTapEnabled = enabled))
         }
     }
 

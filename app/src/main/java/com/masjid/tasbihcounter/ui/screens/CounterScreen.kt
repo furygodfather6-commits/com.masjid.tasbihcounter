@@ -1,5 +1,9 @@
 package com.masjid.tasbihcounter.ui.screens
 
+import android.content.Context
+import android.os.Build
+import android.os.VibrationEffect
+import android.os.Vibrator
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
@@ -17,13 +21,10 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.masjid.tasbihcounter.AppSettings
-import com.masjid.tasbihcounter.TasbihSequenceState
-import com.masjid.tasbihcounter.ThemeSetting
+import com.masjid.tasbihcounter.*
 import com.masjid.tasbihcounter.ui.theme.*
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -60,18 +61,21 @@ fun CounterScreen(
     onNavigateToThemeCustomization: () -> Unit,
     onNavigateToAdvancedCounter: () -> Unit
 ) {
-    val haptic = LocalHapticFeedback.current
+    val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val pulse = remember { Animatable(1f) }
     var isAutoCounting by remember { mutableStateOf(false) }
 
-    LaunchedEffect(isAutoCounting) {
+    // ## COUNTING SPEED KI LOGIC UPDATE KI GAYI HAI ##
+    val autoCountingDelay = (settings.countingSpeed * 1000).toLong()
+
+    LaunchedEffect(isAutoCounting, autoCountingDelay) { // Delay ko dependency banaya
         while (isAutoCounting) {
             onIncrement()
-            if (settings.isVibrationOn) {
-                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+            if (settings.vibrationMode == VibrationMode.AUTO_COUNT || settings.vibrationMode == VibrationMode.TAP_AUTO_COUNT) {
+                vibrate(context, settings.vibrationStrength)
             }
-            delay(1000L)
+            delay(autoCountingDelay)
         }
     }
 
@@ -145,8 +149,9 @@ fun CounterScreen(
                         onClick = {
                             if (!isAutoCounting) {
                                 onIncrement()
-                                if (settings.isVibrationOn) {
-                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                // ## VIBRATION LOGIC UPDATE ##
+                                if (settings.vibrationMode == VibrationMode.TAP || settings.vibrationMode == VibrationMode.TAP_AUTO_COUNT) {
+                                    vibrate(context, settings.vibrationStrength)
                                 }
                                 coroutineScope.launch {
                                     pulse.snapTo(1.1f)
@@ -237,6 +242,18 @@ fun CounterScreen(
                 }
             }
         }
+    }
+}
+
+// Helper function to vibrate with strength
+private fun vibrate(context: Context, strength: Float) {
+    val vibrator = context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        val amplitude = (255 * strength).toInt().coerceIn(1, 255)
+        vibrator.vibrate(VibrationEffect.createOneShot(100, amplitude))
+    } else {
+        @Suppress("DEPRECATION")
+        vibrator.vibrate(100)
     }
 }
 
