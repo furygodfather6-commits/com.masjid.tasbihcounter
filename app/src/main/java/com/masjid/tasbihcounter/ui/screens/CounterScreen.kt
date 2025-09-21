@@ -11,10 +11,10 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -24,7 +24,17 @@ import com.masjid.tasbihcounter.AppSettings
 import com.masjid.tasbihcounter.TasbihSequenceState
 import com.masjid.tasbihcounter.ThemeSetting
 import com.masjid.tasbihcounter.ui.theme.RetroTypography
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlin.random.Random
+
+// Data class for the new animation
+data class Star(
+    val x: Float,
+    val y: Float,
+    val radius: Float,
+    val alpha: Float
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -41,6 +51,17 @@ fun CounterScreen(
     val haptic = LocalHapticFeedback.current
     val coroutineScope = rememberCoroutineScope()
     val pulse = remember { Animatable(1f) }
+    var isAutoCounting by remember { mutableStateOf(false) }
+
+    LaunchedEffect(isAutoCounting) {
+        while (isAutoCounting) {
+            onIncrement()
+            if (settings.isVibrationOn) {
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+            }
+            delay(1000L)
+        }
+    }
 
     val currentTasbih = sequenceState.currentTasbih
 
@@ -78,22 +99,6 @@ fun CounterScreen(
         topBar = {
             TopAppBar(
                 title = { Text("") },
-                actions = {
-                    // ## YAHAN PAR BADLAAV KIYA GAYA HAI ##
-                    // My Tasbih Collection ka button wapas aa gaya hai
-                    IconButton(onClick = onNavigateToList) {
-                        Icon(Icons.Default.List, contentDescription = "Tasbih List", tint = MaterialTheme.colorScheme.onBackground)
-                    }
-                    IconButton(onClick = onNavigateToThemeCustomization) {
-                        Icon(Icons.Filled.ColorLens, contentDescription = "Customize Theme", tint = MaterialTheme.colorScheme.onBackground)
-                    }
-                    IconButton(onClick = onNavigateToSettings) {
-                        Icon(Icons.Default.Settings, contentDescription = "Settings", tint = MaterialTheme.colorScheme.onBackground)
-                    }
-                    IconButton(onClick = onNavigateToAdvancedCounter) {
-                        Icon(Icons.Default.Star, contentDescription = "Advanced Counter", tint = MaterialTheme.colorScheme.onBackground)
-                    }
-                },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
             )
         },
@@ -126,28 +131,41 @@ fun CounterScreen(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null,
                         onClick = {
-                            onIncrement()
-                            if (settings.isVibrationOn) {
-                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                            }
-                            coroutineScope.launch {
-                                pulse.snapTo(1.1f)
-                                pulse.animateTo(1f, animationSpec = spring(stiffness = Spring.StiffnessLow))
+                            if (!isAutoCounting) {
+                                onIncrement()
+                                if (settings.isVibrationOn) {
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                }
+                                coroutineScope.launch {
+                                    pulse.snapTo(1.1f)
+                                    pulse.animateTo(1f, animationSpec = spring(stiffness = Spring.StiffnessLow))
+                                }
                             }
                         }
                     ),
                 contentAlignment = Alignment.Center
             ) {
-                AuroraRing(
-                    modifier = Modifier.size(300.dp),
-                    progress = animatedProgress,
-                    pulse = pulse.value,
-                    colors = listOf(
-                        MaterialTheme.colorScheme.primary,
-                        MaterialTheme.colorScheme.secondary,
-                        MaterialTheme.colorScheme.tertiary
-                    )
-                )
+                when (settings.theme) {
+                    ThemeSetting.GALAXY_DREAM -> {
+                        GalaxyDreamRing(
+                            modifier = Modifier.size(300.dp),
+                            progress = animatedProgress,
+                            pulse = pulse.value
+                        )
+                    }
+                    else -> {
+                        AuroraRing(
+                            modifier = Modifier.size(300.dp),
+                            progress = animatedProgress,
+                            pulse = pulse.value,
+                            colors = listOf(
+                                MaterialTheme.colorScheme.primary,
+                                MaterialTheme.colorScheme.secondary,
+                                MaterialTheme.colorScheme.tertiary
+                            )
+                        )
+                    }
+                }
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
                         text = "Cycle: ${sequenceState.cycleCount}",
@@ -174,15 +192,110 @@ fun CounterScreen(
                     .weight(0.2f),
                 contentAlignment = Alignment.Center
             ) {
-                TextButton(onClick = onReset) {
-                    Text("Reset", color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f), fontSize = 16.sp)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    TextButton(onClick = {
+                        isAutoCounting = false
+                        onReset()
+                    }) {
+                        Text(
+                            "Reset",
+                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+                            fontSize = 16.sp
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(16.dp))
+                    IconButton(onClick = { isAutoCounting = !isAutoCounting }) {
+                        Icon(
+                            imageVector = if (isAutoCounting) Icons.Default.Pause else Icons.Default.PlayArrow,
+                            contentDescription = "Auto-count",
+                            modifier = Modifier.size(32.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
                 }
             }
         }
     }
 }
 
-// AuroraRing function waisa hi rahega
+@Composable
+fun GalaxyDreamRing(modifier: Modifier = Modifier, progress: Float, pulse: Float) {
+    val infiniteTransition = rememberInfiniteTransition(label = "galaxy_rotation")
+    val rotation by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(tween(20000, easing = LinearEasing), RepeatMode.Restart),
+        label = "rotation"
+    )
+
+    val stars = remember {
+        List(100) {
+            Star(
+                x = Random.nextFloat(),
+                y = Random.nextFloat(),
+                radius = Random.nextFloat() * 1.5f + 0.5f,
+                alpha = Random.nextFloat() * 0.5f + 0.5f
+            )
+        }
+    }
+
+    Canvas(modifier = modifier.graphicsLayer {
+        scaleX = pulse
+        scaleY = pulse
+    }) {
+        val width = size.width
+        val height = size.height
+
+        stars.forEach { star ->
+            drawCircle(
+                color = Color.White,
+                center = Offset(star.x * width, star.y * height),
+                radius = star.radius,
+                alpha = star.alpha
+            )
+        }
+
+        drawIntoCanvas {
+            val paint = Paint().apply {
+                style = PaintingStyle.Stroke
+                strokeWidth = 20f
+            }
+            val frameworkPaint = paint.asFrameworkPaint()
+
+            frameworkPaint.color = Color.Transparent.toArgb()
+            frameworkPaint.setShadowLayer(30f, 0f, 0f, MaterialTheme.colorScheme.secondary.copy(alpha = 0.5f).toArgb())
+            it.drawCircle(center, size.minDimension / 2.5f, paint)
+
+            drawArc(
+                brush = Brush.sweepGradient(
+                    listOf(
+                        MaterialTheme.colorScheme.primary,
+                        MaterialTheme.colorScheme.secondary,
+                        MaterialTheme.colorScheme.primary
+                    )
+                ),
+                startAngle = -90f,
+                sweepAngle = 360 * progress,
+                useCenter = false,
+                style = Stroke(width = 25f, cap = StrokeCap.Round)
+            )
+
+            rotate(rotation) {
+                drawArc(
+                    color = MaterialTheme.colorScheme.tertiary,
+                    startAngle = 0f,
+                    sweepAngle = 120f,
+                    useCenter = false,
+                    style = Stroke(width = 5f, pathEffect = PathEffect.dashPathEffect(floatArrayOf(30f, 20f)))
+                )
+            }
+        }
+    }
+}
+
 @Composable
 fun AuroraRing(
     modifier: Modifier = Modifier,

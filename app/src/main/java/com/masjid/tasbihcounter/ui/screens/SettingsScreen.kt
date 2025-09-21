@@ -1,18 +1,19 @@
-// Path: app/src/main/java/com/masjid/tasbihcounter/ui/screens/SettingsScreen.kt
 package com.masjid.tasbihcounter.ui.screens
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.masjid.tasbihcounter.AdvancedTheme
 import com.masjid.tasbihcounter.AppSettings
 import com.masjid.tasbihcounter.ThemeSetting
 
@@ -21,7 +22,7 @@ import com.masjid.tasbihcounter.ThemeSetting
 fun SettingsScreen(
     settings: AppSettings,
     onThemeChange: (ThemeSetting) -> Unit,
-    onVibrationToggle: (Boolean) -> Unit,
+    onAdvancedThemeChange: (AdvancedTheme) -> Unit, // New
     onBack: () -> Unit
 ) {
     Scaffold(
@@ -30,7 +31,7 @@ fun SettingsScreen(
                 title = { Text("Settings") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 }
             )
@@ -42,7 +43,8 @@ fun SettingsScreen(
                 .padding(padding)
                 .padding(16.dp)
         ) {
-            item { SettingsGroup("General Settings") }
+            // Section 1: Appearance
+            item { SettingsGroup("Appearance") }
             item {
                 SegmentedButtonSetting(
                     title = "App Theme",
@@ -54,14 +56,76 @@ fun SettingsScreen(
                     }
                 )
             }
-            item { Divider(modifier = Modifier.padding(vertical = 8.dp)) }
+            // ## YAHAN PAR NAYA OPTION ADD KIYA GAYA HAI ##
+            item {
+                SegmentedButtonSetting(
+                    title = "Advanced Counter Theme",
+                    options = AdvancedTheme.values().map { it.name.replace("_", " ") },
+                    selectedOption = settings.advancedTheme.name.replace("_", " "),
+                    onOptionSelect = {
+                        val selectedTheme = AdvancedTheme.valueOf(it.replace(" ", "_"))
+                        onAdvancedThemeChange(selectedTheme)
+                    }
+                )
+            }
+            item { HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp)) }
 
-            item { SettingsGroup("Feedback Settings") }
+            // Section 2: Audio & Feedback
+            item { SettingsGroup("Audio & Feedback") }
+            item {
+                SegmentedButtonSetting(
+                    title = "Vibration Mode",
+                    options = listOf("On Tap", "On Target", "Off"),
+                    selectedOption = "On Tap", // Placeholder
+                    onOptionSelect = { /* TODO */ }
+                )
+            }
+            item {
+                var sliderPosition by remember { mutableStateOf(0.5f) }
+                SliderSettingItem(
+                    title = "Vibration Strength",
+                    value = sliderPosition,
+                    onValueChange = { sliderPosition = it }
+                )
+            }
+            item {
+                SegmentedButtonSetting(
+                    title = "Sound Mode",
+                    options = listOf("On Tap", "On Target", "Off"),
+                    selectedOption = "Off", // Placeholder
+                    onOptionSelect = { /* TODO */ }
+                )
+            }
+            item { HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp)) }
+
+            // Section 3: Counter Behavior
+            item { SettingsGroup("Counter Behavior") }
             item {
                 SwitchSettingItem(
-                    title = "Vibration on Tap",
-                    checked = settings.isVibrationOn,
-                    onCheckedChange = onVibrationToggle
+                    title = "Limit Count Setting",
+                    checked = false, // Placeholder
+                    onCheckedChange = { /* TODO */ }
+                )
+            }
+            item {
+                SegmentedButtonSetting(
+                    title = "Counting Speed",
+                    options = listOf("Slow", "Normal", "Fast"),
+                    selectedOption = "Normal", // Placeholder
+                    onOptionSelect = { /* TODO */ }
+                )
+            }
+            item {
+                SwitchSettingItem(
+                    title = "Background Counting",
+                    checked = false, // Placeholder
+                    onCheckedChange = { /* TODO */ }
+                )
+            }
+            item {
+                ClickableSettingItem(
+                    title = "Additional Settings",
+                    onClick = { /* TODO: Navigate to another screen */ }
                 )
             }
         }
@@ -86,20 +150,15 @@ fun SegmentedButtonSetting(
     selectedOption: String,
     onOptionSelect: (String) -> Unit
 ) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Text(title, fontSize = 16.sp, modifier = Modifier.weight(1f))
-        SingleChoiceSegmentedButtonRow {
+    Column(modifier = Modifier.padding(vertical = 8.dp)) {
+        Text(title, fontSize = 16.sp)
+        Spacer(modifier = Modifier.height(8.dp))
+        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
             options.forEachIndexed { index, label ->
                 SegmentedButton(
                     shape = SegmentedButtonDefaults.itemShape(index = index, count = options.size),
                     onClick = { onOptionSelect(label) },
-                    selected = label == selectedOption
+                    selected = label.replace(" ", "_") == selectedOption.replace(" ", "_")
                 ) {
                     Text(label, fontSize = 12.sp)
                 }
@@ -120,5 +179,39 @@ fun SwitchSettingItem(title: String, checked: Boolean, onCheckedChange: (Boolean
     ) {
         Text(title, fontSize = 16.sp)
         Switch(checked = checked, onCheckedChange = null)
+    }
+}
+
+@Composable
+fun SliderSettingItem(title: String, value: Float, onValueChange: (Float) -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp)
+    ) {
+        Text(title, fontSize = 16.sp)
+        Slider(
+            value = value,
+            onValueChange = onValueChange
+        )
+    }
+}
+
+@Composable
+fun ClickableSettingItem(title: String, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(title, fontSize = 16.sp)
+        Icon(
+            imageVector = Icons.Default.ChevronRight,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+        )
     }
 }

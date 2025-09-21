@@ -29,7 +29,8 @@ fun HomeScreen(
     onStartCounting: () -> Unit,
     onNavigateToTheme: () -> Unit,
     onNavigateToSettings: () -> Unit,
-    onNavigateToProgress: () -> Unit
+    onNavigateToProgress: () -> Unit,
+    onStartDefaultCounter: () -> Unit
 ) {
     val ivoryBackground = Color(0xFFFBF7EE)
     val tealPrimary = Color(0xFF14937C)
@@ -121,7 +122,7 @@ fun HomeScreen(
                 Spacer(modifier = Modifier.height(24.dp))
                 // Yeh button default counter (33/33/34) ko shuru karega
                 Button(
-                    onClick = { /* TODO: Isko default counter se jodein ya hata dein */ },
+                    onClick = { onStartDefaultCounter() },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(56.dp),

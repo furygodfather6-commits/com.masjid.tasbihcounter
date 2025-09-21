@@ -12,14 +12,15 @@ val Purple40 = Color(0xFF6650a4)
 val PurpleGrey40 = Color(0xFF625b71)
 val Pink40 = Color(0xFF7D5260)
 
-// Mecca Midnight Theme Colors
-val MeccaNight = Color(0xFF0C0D11)
-val KaabaGold = Color(0xFFD4AF37)
-val HaramWhite = Color(0xFFF5F5F5)
-val FajrBlue = Color(0xFF3C4E71)
-val StoneGray = Color(0xFF4A4A4B)
 // Retro Arcade Theme Colors
 val ArcadeBlack = Color(0xFF0A041C)
 val NeonPink = Color(0xFFF400F4)
 val NeonCyan = Color(0xFF00E5FF)
 val ArcadeGray = Color(0xFF33313B)
+
+// ## YAHAN PAR NAYE COLORS ADD KIYE GAYE HAIN ##
+// Galaxy Dream Theme Colors
+val GalaxyNight = Color(0xFF0D0520)
+val PulsarPurple = Color(0xFF8A2BE2)
+val StardustSilver = Color(0xFFC0C0C0)
+val NebulaPink = Color(0xFFFF00FF)

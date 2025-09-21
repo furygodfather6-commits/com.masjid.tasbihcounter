@@ -10,8 +10,8 @@ enum class AdvancedTheme {
 
 @Serializable
 data class AppSettings(
-    val theme: ThemeSetting = ThemeSetting.SYSTEM,
-    val advancedTheme: AdvancedTheme = AdvancedTheme.SERENE_POND,
+    val theme: ThemeSetting = ThemeSetting.GALAXY_DREAM, // Default is now the new theme
+    val advancedTheme: AdvancedTheme = AdvancedTheme.ETERNAL_CLOCK,
     val isVibrationOn: Boolean = true,
     val isSoundOn: Boolean = false,
     val tapAnywhere: Boolean = true,
@@ -19,5 +19,5 @@ data class AppSettings(
 )
 
 enum class ThemeSetting {
-    LIGHT, DARK, SYSTEM, MECCA_MIDNIGHT, RETRO_ARCADE
+    LIGHT, SYSTEM, RETRO_ARCADE, GALAXY_DREAM // New theme added
 }

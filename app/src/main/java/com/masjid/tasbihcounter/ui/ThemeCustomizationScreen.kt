@@ -1,9 +1,6 @@
-// Path: app/src/main/java/com/masjid/tasbihcounter/ui/ThemeCustomizationScreen.kt
 package com.masjid.tasbihcounter.ui
-import com.masjid.tasbihcounter.ui.theme.ArcadeBlack
-import com.masjid.tasbihcounter.ui.theme.NeonCyan
-import com.masjid.tasbihcounter.ui.theme.NeonPink
 
+import com.masjid.tasbihcounter.ui.theme.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -14,7 +11,7 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -42,7 +39,7 @@ fun ThemeCustomizationScreen(
                 title = { Text("Customize Theme") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 }
             )
@@ -76,10 +73,9 @@ fun ThemeCard(
 ) {
     val cardColors = when (themeSetting) {
         ThemeSetting.LIGHT -> listOf(Color(0xFFF0F0F0), Color(0xFF6200EE), Color.White)
-        ThemeSetting.DARK -> listOf(Color(0xFF121212), Color(0xFFBB86FC), Color(0xFF1E1E1E))
         ThemeSetting.SYSTEM -> listOf(Color.Gray, Color.White, Color.Black)
-        ThemeSetting.MECCA_MIDNIGHT -> listOf(Color(0xFF0C0D11), Color(0xFFD4AF37), Color(0xFF4A4A4B))
         ThemeSetting.RETRO_ARCADE -> listOf(ArcadeBlack, NeonPink, NeonCyan)
+        ThemeSetting.GALAXY_DREAM -> listOf(GalaxyNight, PulsarPurple, NebulaPink)
     }
 
     Card(

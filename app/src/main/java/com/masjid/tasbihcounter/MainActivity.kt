@@ -70,7 +70,8 @@ fun TasbihApp(
                     onStartCounting = { onScreenChange(Screen.LIST) },
                     onNavigateToTheme = { onScreenChange(Screen.THEME_CUSTOMIZATION) },
                     onNavigateToSettings = { onScreenChange(Screen.SETTINGS) },
-                    onNavigateToProgress = { onScreenChange(Screen.PROGRESS) }
+                    onNavigateToProgress = { onScreenChange(Screen.PROGRESS) },
+                    onStartDefaultCounter = { onScreenChange(Screen.COUNTER) }
                 )
             }
             Screen.LIST -> {
@@ -119,7 +120,7 @@ fun TasbihApp(
                 SettingsScreen(
                     settings = uiState.settings,
                     onThemeChange = { viewModel.updateTheme(it) },
-                    onVibrationToggle = { viewModel.toggleVibration(it) },
+                    onAdvancedThemeChange = { viewModel.updateAdvancedTheme(it) }, // New
                     onBack = { onScreenChange(Screen.HOME) }
                 )
             }

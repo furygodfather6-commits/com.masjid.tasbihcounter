@@ -32,18 +32,6 @@ private val LightColorScheme = lightColorScheme(
     onSurface = Color.Black
 )
 
-private val MeccaMidnightColorScheme = darkColorScheme(
-    primary = KaabaGold,
-    secondary = FajrBlue,
-    tertiary = HaramWhite,
-    background = MeccaNight,
-    surface = StoneGray,
-    onPrimary = MeccaNight,
-    onSecondary = HaramWhite,
-    onTertiary = MeccaNight,
-    onBackground = HaramWhite,
-    onSurface = HaramWhite
-)
 private val RetroArcadeColorScheme = darkColorScheme(
     primary = NeonPink,
     secondary = NeonCyan,
@@ -55,20 +43,29 @@ private val RetroArcadeColorScheme = darkColorScheme(
     onSurface = Color.White
 )
 
+// ## YAHAN PAR NAYA COLOR SCHEME ADD KIYA GAYA HAI ##
+private val GalaxyDreamColorScheme = darkColorScheme(
+    primary = PulsarPurple,
+    secondary = NebulaPink,
+    tertiary = StardustSilver,
+    background = GalaxyNight,
+    onBackground = Color.White,
+    surface = GalaxyNight,
+    onSurface = Color.White
+)
+
 @Composable
 fun MasjidTasbihCounterTheme(
     themeSetting: ThemeSetting = ThemeSetting.SYSTEM,
     content: @Composable () -> Unit
 ) {
-    // ## यहाँ पर बदलाव किया गया है ##
-    val useDarkTheme = isSystemInDarkTheme() // पहले बाहर कॉल किया
+    val useDarkTheme = isSystemInDarkTheme()
 
     val colorScheme = when (themeSetting) {
         ThemeSetting.LIGHT -> LightColorScheme
-        ThemeSetting.DARK -> DarkColorScheme
-        ThemeSetting.MECCA_MIDNIGHT -> MeccaMidnightColorScheme
         ThemeSetting.RETRO_ARCADE -> RetroArcadeColorScheme
-        ThemeSetting.SYSTEM -> if (useDarkTheme) DarkColorScheme else LightColorScheme // फिर यहाँ इस्तेमाल किया
+        ThemeSetting.GALAXY_DREAM -> GalaxyDreamColorScheme // New theme case
+        ThemeSetting.SYSTEM -> if (useDarkTheme) DarkColorScheme else LightColorScheme
     }
 
     val view = LocalView.current
@@ -77,11 +74,10 @@ fun MasjidTasbihCounterTheme(
             val window = (view.context as Activity).window
             window.statusBarColor = colorScheme.background.toArgb()
 
-            // ## और यहाँ भी बदलाव किया गया है ##
             val isLight = when (themeSetting) {
                 ThemeSetting.LIGHT -> true
-                ThemeSetting.DARK, ThemeSetting.MECCA_MIDNIGHT, ThemeSetting.RETRO_ARCADE -> false
-                ThemeSetting.SYSTEM -> !useDarkTheme // उस वेरिएबल का इस्तेमाल किया
+                ThemeSetting.RETRO_ARCADE, ThemeSetting.GALAXY_DREAM -> false // New theme case
+                ThemeSetting.SYSTEM -> !useDarkTheme
             }
             WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = isLight
         }

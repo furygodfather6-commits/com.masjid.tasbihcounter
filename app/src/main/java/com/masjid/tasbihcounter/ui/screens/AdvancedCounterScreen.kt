@@ -9,16 +9,20 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.*
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.text.font.FontWeight // <-- IMPORT ADDED HERE
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.masjid.tasbihcounter.AdvancedTheme
@@ -30,6 +34,7 @@ import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.random.Random
 
+// Data classes remain the same
 data class Ripple(
     val center: Offset,
     val creationTime: Long = System.currentTimeMillis()
@@ -54,10 +59,135 @@ fun AdvancedCounterScreen(
     Crossfade(targetState = settings.advancedTheme, label = "AdvancedThemeCrossfade") { theme ->
         when (theme) {
             AdvancedTheme.SERENE_POND -> SerenePondTheme(tasbih, onIncrement, onReset, onBack)
+            AdvancedTheme.ETERNAL_CLOCK -> EternalClockTheme(tasbih, onIncrement, onReset, onBack)
             else -> SerenePondTheme(tasbih, onIncrement, onReset, onBack)
         }
     }
 }
+
+// ## YAHAN PAR NAYA THEME ADD KIYA GAYA HAI ##
+@Composable
+fun EternalClockTheme(
+    tasbih: Tasbih,
+    onIncrement: () -> Unit,
+    onReset: () -> Unit,
+    onBack: () -> Unit
+) {
+    var showButtons by remember { mutableStateOf(false) }
+
+    val infiniteTransition = rememberInfiniteTransition(label = "clock_hands")
+    val secondsRotation by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(tween(60000, easing = LinearEasing)),
+        label = "seconds"
+    )
+    val minutesRotation by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(tween(3600000, easing = LinearEasing)),
+        label = "minutes"
+    )
+
+    val progress = tasbih.count.toFloat() / tasbih.target.toFloat()
+    val animatedProgress by animateFloatAsState(
+        targetValue = progress,
+        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+        label = "progress"
+    )
+
+    LaunchedEffect(Unit) {
+        showButtons = true
+        delay(3000)
+        showButtons = false
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFF121212))
+            .pointerInput(Unit) {
+                detectTapGestures(onTap = {
+                    onIncrement()
+                    showButtons = false
+                })
+            }
+    ) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val radius = size.minDimension / 2.5f
+            val center = this.center
+
+            // Draw clock face
+            drawCircle(
+                color = Color.White.copy(alpha = 0.1f),
+                radius = radius,
+                style = Stroke(width = 2.dp.toPx())
+            )
+
+            // Draw progress arc
+            drawArc(
+                brush = Brush.sweepGradient(listOf(Color(0xFF8A2BE2), Color(0xFF00BFFF))),
+                startAngle = -90f,
+                sweepAngle = 360 * animatedProgress,
+                useCenter = false,
+                style = Stroke(width = 8.dp.toPx(), cap = StrokeCap.Round),
+                size = Size(radius * 2, radius * 2),
+                topLeft = Offset(center.x - radius, center.y - radius)
+            )
+
+            // Draw clock hands
+            rotate(degrees = minutesRotation, pivot = center) {
+                drawLine(
+                    color = Color.White,
+                    start = center,
+                    end = Offset(center.x, center.y - radius * 0.5f),
+                    strokeWidth = 3.dp.toPx(),
+                    cap = StrokeCap.Round
+                )
+            }
+            rotate(degrees = secondsRotation, pivot = center) {
+                drawLine(
+                    color = Color.Cyan,
+                    start = center,
+                    end = Offset(center.x, center.y - radius * 0.8f),
+                    strokeWidth = 2.dp.toPx(),
+                    cap = StrokeCap.Round
+                )
+            }
+
+            drawCircle(color = Color.Cyan, radius = 5.dp.toPx(), center = center)
+        }
+
+        Column(
+            modifier = Modifier.align(Alignment.Center),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = "${tasbih.count}",
+                fontSize = 90.sp,
+                color = Color.White,
+                fontWeight = FontWeight.Bold,
+            )
+            Text(
+                text = "Target: ${tasbih.target}",
+                fontSize = 20.sp,
+                color = Color.White.copy(alpha = 0.7f)
+            )
+        }
+
+        AnimatedVisibility(visible = showButtons, modifier = Modifier.align(Alignment.TopStart).padding(16.dp)) {
+            Button(onClick = onBack, shape = CircleShape) {
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+            }
+        }
+        AnimatedVisibility(visible = showButtons, modifier = Modifier.align(Alignment.TopEnd).padding(16.dp)) {
+            Button(onClick = onReset, shape = CircleShape) {
+                Icon(Icons.Default.Refresh, contentDescription = "Reset")
+            }
+        }
+    }
+}
+
 
 @Composable
 fun SerenePondTheme(
@@ -186,7 +316,7 @@ fun SerenePondTheme(
 
         AnimatedVisibility(visible = showButtons, modifier = Modifier.align(Alignment.TopStart).padding(16.dp)) {
             Button(onClick = onBack, shape = CircleShape) {
-                Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
             }
         }
         AnimatedVisibility(visible = showButtons, modifier = Modifier.align(Alignment.TopEnd).padding(16.dp)) {

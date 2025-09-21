@@ -176,6 +176,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    // ## YAHAN PAR NAYA FUNCTION ADD KIYA GAYA HAI ##
+    fun updateAdvancedTheme(advancedTheme: AdvancedTheme) {
+        viewModelScope.launch {
+            saveSettings(_uiState.value.settings.copy(advancedTheme = advancedTheme))
+        }
+    }
+
     fun toggleVibration(isOn: Boolean) {
         viewModelScope.launch {
             saveSettings(_uiState.value.settings.copy(isVibrationOn = isOn))
