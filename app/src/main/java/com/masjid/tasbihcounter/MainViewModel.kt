@@ -8,19 +8,36 @@ import androidx.lifecycle.viewModelScope
 import com.masjid.tasbihcounter.ui.screens.TasbihSession
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-import kotlinx.serialization.InternalSerializationApi
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import java.util.Date
+import java.util.*
+
+@Serializable
+data class DailyProgress(val date: Long, val totalCount: Int)
+
+data class TasbihSequenceState(
+    val tasbihs: List<Tasbih> = emptyList(),
+    val currentTasbihIndex: Int = 0,
+    val totalCount: Int = 0,
+    val cycleCount: Int = 1
+) {
+    val currentTasbih: Tasbih?
+        get() = tasbihs.getOrNull(currentTasbihIndex)
+
+    val overallTarget: Int
+        get() = tasbihs.sumOf { it.target }
+}
 
 data class AppUiState(
     val tasbihList: List<Tasbih> = emptyList(),
     val activeTasbihId: Long? = null,
     val settings: AppSettings = AppSettings(),
-    val history: List<TasbihSession> = emptyList()
+    val history: List<TasbihSession> = emptyList(),
+    val sequenceState: TasbihSequenceState = TasbihSequenceState(),
+    val progressRecords: List<DailyProgress> = emptyList()
 )
 
-@OptIn(InternalSerializationApi::class)
 class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _uiState = MutableStateFlow(AppUiState())
@@ -31,85 +48,150 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     companion object {
         private val TASBIH_LIST_KEY = stringPreferencesKey("tasbih_list_json")
         private val SETTINGS_KEY = stringPreferencesKey("app_settings_json")
+        private val PROGRESS_RECORDS_KEY = stringPreferencesKey("progress_records_json")
     }
 
     init {
+        val defaultSequence = TasbihSequenceState(
+            tasbihs = listOf(
+                Tasbih(id = 1, name = "SubhanAllah", target = 33),
+                Tasbih(id = 2, name = "Alhamdulillah", target = 33),
+                Tasbih(id = 3, name = "Allahu Akbar", target = 34)
+            )
+        )
+        _uiState.update { it.copy(sequenceState = defaultSequence) }
+        loadData()
+    }
+
+    private fun loadData() {
         viewModelScope.launch {
-            dataStore.data.map { preferences ->
-                val jsonString = preferences[TASBIH_LIST_KEY]
-                if (jsonString.isNullOrEmpty()) {
-                    listOf(
-                        Tasbih(name = "SubhanAllah", target = 33),
-                        Tasbih(name = "Alhamdulillah", target = 33),
-                        Tasbih(name = "Allahu Akbar", target = 34)
-                    )
-                } else {
-                    Json.decodeFromString<List<Tasbih>>(jsonString)
-                }
-            }.distinctUntilChanged().collect { tasbihList ->
-                _uiState.update { currentState ->
-                    val newActiveId = if (currentState.activeTasbihId == null || tasbihList.none { it.id == currentState.activeTasbihId }) {
-                        tasbihList.firstOrNull()?.id
-                    } else {
-                        currentState.activeTasbihId
-                    }
-                    currentState.copy(
+            dataStore.data.collect { preferences ->
+                val settings = preferences[SETTINGS_KEY]?.let { Json.decodeFromString<AppSettings>(it) } ?: AppSettings()
+                val tasbihList = preferences[TASBIH_LIST_KEY]?.let { Json.decodeFromString<List<Tasbih>>(it) } ?: emptyList()
+                val progressRecords = preferences[PROGRESS_RECORDS_KEY]?.let { Json.decodeFromString<List<DailyProgress>>(it) } ?: emptyList()
+                _uiState.update {
+                    it.copy(
+                        settings = settings,
                         tasbihList = tasbihList,
-                        activeTasbihId = newActiveId
+                        progressRecords = progressRecords
                     )
                 }
             }
         }
+    }
 
+    fun incrementSequenceCounter() {
         viewModelScope.launch {
-            dataStore.data.map { preferences ->
-                val jsonString = preferences[SETTINGS_KEY]
-                if (jsonString != null) Json.decodeFromString<AppSettings>(jsonString) else AppSettings()
-            }.collect { settings ->
-                _uiState.update { it.copy(settings = settings) }
+            var currentSequence = _uiState.value.sequenceState
+            if (currentSequence.totalCount >= currentSequence.overallTarget) {
+                logDailyProgress(currentSequence.overallTarget)
+                val newCycleCount = currentSequence.cycleCount + 1
+                val resetTasbihs = currentSequence.tasbihs.map { it.copy(count = 0) }
+                currentSequence = currentSequence.copy(
+                    totalCount = 0,
+                    currentTasbihIndex = 0,
+                    cycleCount = newCycleCount,
+                    tasbihs = resetTasbihs
+                )
+            }
+            val newTotalCount = currentSequence.totalCount + 1
+            var currentTasbihIndex = 0
+            var countInTasbih = newTotalCount
+            var cumulativeTarget = 0
+            for ((index, tasbih) in currentSequence.tasbihs.withIndex()) {
+                cumulativeTarget += tasbih.target
+                if (newTotalCount <= cumulativeTarget) {
+                    currentTasbihIndex = index
+                    countInTasbih = newTotalCount - (cumulativeTarget - tasbih.target)
+                    break
+                }
+            }
+            val updatedTasbihs = currentSequence.tasbihs.mapIndexed { index, tasbih ->
+                if (index == currentTasbihIndex) tasbih.copy(count = countInTasbih)
+                else if (index < currentTasbihIndex) tasbih.copy(count = tasbih.target)
+                else tasbih.copy(count = 0)
+            }
+            _uiState.update {
+                it.copy(
+                    sequenceState = currentSequence.copy(
+                        totalCount = newTotalCount,
+                        currentTasbihIndex = currentTasbihIndex,
+                        tasbihs = updatedTasbihs
+                    )
+                )
+            }
+        }
+    }
+
+    private suspend fun logDailyProgress(count: Int) {
+        val today = Calendar.getInstance().apply {
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }.timeInMillis
+
+        val currentRecords = _uiState.value.progressRecords.toMutableList()
+        val todayRecordIndex = currentRecords.indexOfFirst { it.date == today }
+
+        if (todayRecordIndex != -1) {
+            val updatedRecord = currentRecords[todayRecordIndex].let {
+                it.copy(totalCount = it.totalCount + count)
+            }
+            currentRecords[todayRecordIndex] = updatedRecord
+        } else {
+            currentRecords.add(DailyProgress(date = today, totalCount = count))
+        }
+
+        _uiState.update { it.copy(progressRecords = currentRecords) }
+        dataStore.edit { preferences ->
+            preferences[PROGRESS_RECORDS_KEY] = Json.encodeToString(currentRecords)
+        }
+    }
+
+    fun resetSequenceCounter() {
+        viewModelScope.launch {
+            val currentSequence = _uiState.value.sequenceState
+            val resetTasbihs = currentSequence.tasbihs.map { it.copy(count = 0) }
+            _uiState.update {
+                it.copy(
+                    sequenceState = currentSequence.copy(
+                        totalCount = 0,
+                        currentTasbihIndex = 0,
+                        cycleCount = 1,
+                        tasbihs = resetTasbihs
+                    )
+                )
             }
         }
     }
 
     private suspend fun saveSettings(settings: AppSettings) {
-        val jsonString = Json.encodeToString(settings)
-        dataStore.edit { preferences ->
-            preferences[SETTINGS_KEY] = jsonString
-        }
+        dataStore.edit { it[SETTINGS_KEY] = Json.encodeToString(settings) }
     }
 
     fun updateTheme(theme: ThemeSetting) {
         viewModelScope.launch {
-            val newSettings = _uiState.value.settings.copy(theme = theme)
-            saveSettings(newSettings)
+            saveSettings(_uiState.value.settings.copy(theme = theme))
         }
     }
 
     fun toggleVibration(isOn: Boolean) {
         viewModelScope.launch {
-            val newSettings = _uiState.value.settings.copy(isVibrationOn = isOn)
-            saveSettings(newSettings)
-        }
-    }
-
-    fun updateAdvancedTheme(theme: AdvancedTheme) {
-        viewModelScope.launch {
-            val newSettings = _uiState.value.settings.copy(advancedTheme = theme)
-            saveSettings(newSettings)
+            saveSettings(_uiState.value.settings.copy(isVibrationOn = isOn))
         }
     }
 
     private suspend fun saveList(list: List<Tasbih>) {
         val jsonString = Json.encodeToString(list)
-        dataStore.edit { preferences ->
-            preferences[TASBIH_LIST_KEY] = jsonString
-        }
+        dataStore.edit { preferences -> preferences[TASBIH_LIST_KEY] = jsonString }
     }
 
     fun addTasbih(name: String, target: Int) {
         viewModelScope.launch {
-            val newList = _uiState.value.tasbihList + Tasbih(name = name, target = target)
-            _uiState.update { it.copy(tasbihList = newList, activeTasbihId = newList.last().id) }
+            val newTasbih = Tasbih(name = name, target = target)
+            val newList = _uiState.value.tasbihList + newTasbih
+            _uiState.update { it.copy(tasbihList = newList, activeTasbihId = newTasbih.id) }
             saveList(newList)
         }
     }
@@ -118,57 +200,41 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         _uiState.update { it.copy(activeTasbihId = id) }
     }
 
-    fun incrementActiveTasbih() {
+    fun deleteTasbih(id: Long) {
         viewModelScope.launch {
-            val currentState = _uiState.value
-            val activeId = currentState.activeTasbihId ?: return@launch
-            val tasbihList = currentState.tasbihList
-            val activeTasbihIndex = tasbihList.indexOfFirst { it.id == activeId }
-            if (activeTasbihIndex == -1) return@launch
-
-            val activeTasbih = tasbihList[activeTasbihIndex]
-
-            if (activeTasbih.count >= activeTasbih.target) return@launch
-
-            val newCount = activeTasbih.count + 1
-            val newList = tasbihList.toMutableList()
-            newList[activeTasbihIndex] = activeTasbih.copy(count = newCount)
-
-            var nextActiveId = activeId
-            if (newCount >= activeTasbih.target && (activeTasbih.name == "SubhanAllah" || activeTasbih.name == "Alhamdulillah")) {
-                if (activeTasbihIndex < tasbihList.size - 1) {
-                    nextActiveId = tasbihList[activeTasbihIndex + 1].id
-                }
-            }
-
-            _uiState.value = currentState.copy(tasbihList = newList, activeTasbihId = nextActiveId)
+            val currentList = _uiState.value.tasbihList
+            val newList = currentList.filterNot { it.id == id }
+            _uiState.update { it.copy(tasbihList = newList) }
             saveList(newList)
         }
     }
 
-
-    fun resetActiveTasbih() {
+    fun incrementCustomTasbih(tasbihId: Long) {
         viewModelScope.launch {
-            val activeId = _uiState.value.activeTasbihId ?: return@launch
-            val newList = _uiState.value.tasbihList.map {
-                if (it.id == activeId) it.copy(count = 0) else it
+            val currentList = _uiState.value.tasbihList
+            val newList = currentList.map {
+                if (it.id == tasbihId && it.count < it.target) {
+                    it.copy(count = it.count + 1)
+                } else {
+                    it
+                }
             }
             _uiState.update { it.copy(tasbihList = newList) }
             saveList(newList)
         }
     }
 
-    fun deleteTasbih(id: Long) {
+    fun resetCustomTasbih(tasbihId: Long) {
         viewModelScope.launch {
             val currentList = _uiState.value.tasbihList
-            val newList = currentList.filterNot { it.id == id }
-            var newActiveId = _uiState.value.activeTasbihId
-
-            if (newActiveId == id) {
-                newActiveId = newList.firstOrNull()?.id
+            val newList = currentList.map {
+                if (it.id == tasbihId) {
+                    it.copy(count = 0)
+                } else {
+                    it
+                }
             }
-
-            _uiState.update { it.copy(tasbihList = newList, activeTasbihId = newActiveId) }
+            _uiState.update { it.copy(tasbihList = newList) }
             saveList(newList)
         }
     }

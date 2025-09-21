@@ -28,8 +28,9 @@ class MainActivity : ComponentActivity() {
                 override fun handleOnBackPressed() {
                     when (currentScreen) {
                         Screen.HOME -> finish()
-                        Screen.COUNTER, Screen.HISTORY, Screen.SETTINGS, Screen.LIST -> currentScreen = Screen.HOME
-                        Screen.THEME_CUSTOMIZATION, Screen.ADVANCED_COUNTER -> currentScreen = Screen.COUNTER
+                        Screen.COUNTER, Screen.HISTORY, Screen.SETTINGS, Screen.LIST, Screen.PROGRESS -> currentScreen = Screen.HOME
+                        Screen.THEME_CUSTOMIZATION -> currentScreen = Screen.HOME
+                        Screen.ADVANCED_COUNTER -> currentScreen = Screen.LIST
                     }
                 }
             }
@@ -62,19 +63,50 @@ fun TasbihApp(
 ) {
     val activeTasbih = uiState.tasbihList.find { it.id == uiState.activeTasbihId }
 
-    LaunchedEffect(activeTasbih, uiState.tasbihList) {
-        if (activeTasbih == null && uiState.tasbihList.isNotEmpty()) {
-            viewModel.selectTasbih(uiState.tasbihList.first().id)
-        }
-    }
-
     Surface(modifier = Modifier.fillMaxSize()) {
         when (currentScreen) {
             Screen.HOME -> {
                 HomeScreen(
-                    onStartCounting = { onScreenChange(Screen.COUNTER) },
-                    onNavigateToHistory = { onScreenChange(Screen.HISTORY) },
-                    onNavigateToSettings = { onScreenChange(Screen.SETTINGS) }
+                    onStartCounting = { onScreenChange(Screen.LIST) },
+                    onNavigateToTheme = { onScreenChange(Screen.THEME_CUSTOMIZATION) },
+                    onNavigateToSettings = { onScreenChange(Screen.SETTINGS) },
+                    onNavigateToProgress = { onScreenChange(Screen.PROGRESS) }
+                )
+            }
+            Screen.LIST -> {
+                AdvancedTasbihScreen(
+                    tasbihList = uiState.tasbihList,
+                    onAddNew = {
+                        viewModel.addTasbih("New Tasbih", 100)
+                    },
+                    onEdit = { /* TODO: Implement Edit Screen */ },
+                    onDelete = { viewModel.deleteTasbih(it.id) },
+                    onSelect = {
+                        viewModel.selectTasbih(it.id)
+                        onScreenChange(Screen.ADVANCED_COUNTER)
+                    },
+                    onBack = { onScreenChange(Screen.HOME) }
+                )
+            }
+            Screen.ADVANCED_COUNTER -> {
+                if (activeTasbih != null) {
+                    AdvancedCounterScreen(
+                        tasbih = activeTasbih,
+                        settings = uiState.settings,
+                        onIncrement = { viewModel.incrementCustomTasbih(activeTasbih.id) },
+                        onReset = { viewModel.resetCustomTasbih(activeTasbih.id) },
+                        onBack = { onScreenChange(Screen.LIST) }
+                    )
+                } else {
+                    LaunchedEffect(Unit) {
+                        onScreenChange(Screen.LIST)
+                    }
+                }
+            }
+            Screen.PROGRESS -> {
+                ProgressScreen(
+                    progressRecords = uiState.progressRecords,
+                    onBack = { onScreenChange(Screen.HOME) }
                 )
             }
             Screen.HISTORY -> {
@@ -91,57 +123,24 @@ fun TasbihApp(
                     onBack = { onScreenChange(Screen.HOME) }
                 )
             }
-            Screen.LIST -> {
-                TasbihListScreen(
-                    tasbihList = uiState.tasbihList,
-                    onSelectTasbih = {
-                        viewModel.selectTasbih(it.id)
-                        onScreenChange(Screen.COUNTER)
-                    },
-                    onAddTasbih = { name, target -> viewModel.addTasbih(name, target) },
-                    onDeleteTasbih = { viewModel.deleteTasbih(it.id) },
-                    onBack = { if (uiState.tasbihList.isNotEmpty()) onScreenChange(Screen.COUNTER) }
-                )
-            }
             Screen.COUNTER -> {
-                if (activeTasbih != null) {
-                    CounterScreen(
-                        tasbih = activeTasbih,
-                        settings = uiState.settings,
-                        onIncrement = { viewModel.incrementActiveTasbih() },
-                        onReset = { viewModel.resetActiveTasbih() },
-                        onNavigateToSettings = { onScreenChange(Screen.SETTINGS) },
-                        onNavigateToList = { onScreenChange(Screen.LIST) },
-                        onNavigateToThemeCustomization = { onScreenChange(Screen.THEME_CUSTOMIZATION) },
-                        onNavigateToAdvancedCounter = { onScreenChange(Screen.ADVANCED_COUNTER) }
-                    )
-                } else {
-                    LaunchedEffect(Unit) {
-                        onScreenChange(Screen.LIST)
-                    }
-                }
+                CounterScreen(
+                    sequenceState = uiState.sequenceState,
+                    settings = uiState.settings,
+                    onIncrement = { viewModel.incrementSequenceCounter() },
+                    onReset = { viewModel.resetSequenceCounter() },
+                    onNavigateToSettings = { onScreenChange(Screen.SETTINGS) },
+                    onNavigateToList = { onScreenChange(Screen.LIST) },
+                    onNavigateToThemeCustomization = { onScreenChange(Screen.THEME_CUSTOMIZATION) },
+                    onNavigateToAdvancedCounter = { /* Iski zaroorat nahi */ }
+                )
             }
             Screen.THEME_CUSTOMIZATION -> {
                 ThemeCustomizationScreen(
                     settings = uiState.settings,
                     onThemeChange = { viewModel.updateTheme(it) },
-                    onBack = { onScreenChange(Screen.COUNTER) }
+                    onBack = { onScreenChange(Screen.HOME) }
                 )
-            }
-            Screen.ADVANCED_COUNTER -> {
-                if (activeTasbih != null) {
-                    AdvancedCounterScreen(
-                        tasbih = activeTasbih,
-                        settings = uiState.settings,
-                        onIncrement = { viewModel.incrementActiveTasbih() },
-                        onReset = { viewModel.resetActiveTasbih() },
-                        onBack = { onScreenChange(Screen.COUNTER) }
-                    )
-                } else {
-                    LaunchedEffect(Unit) {
-                        onScreenChange(Screen.LIST)
-                    }
-                }
             }
         }
     }

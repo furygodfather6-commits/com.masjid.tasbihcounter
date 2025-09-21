@@ -7,5 +7,6 @@ enum class Screen {
     SETTINGS,
     THEME_CUSTOMIZATION,
     ADVANCED_COUNTER,
-    HISTORY
+    HISTORY,
+    PROGRESS // <-- Is line ko add karein
 }

@@ -1,4 +1,3 @@
-// Path: app/src/main/java/com/masjid/tasbihcounter/ui/screens/TasbihListScreen.kt
 package com.masjid.tasbihcounter.ui.screens
 
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -71,19 +70,26 @@ fun TasbihListScreen(
             TopAppBar(
                 title = { Text("My Tasbih Collection") },
                 navigationIcon = {
-                    if (tasbihList.isNotEmpty()) {
-                        IconButton(onClick = onBack) {
-                            Icon(Icons.Default.ArrowBack, contentDescription = "Back")
-                        }
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
                     }
                 }
             )
         },
+        // ## YAHAN PAR BADLAAV KIYA GAYA HAI ##
         floatingActionButton = {
-            FloatingActionButton(onClick = { showAddDialog = true }) {
-                Icon(Icons.Default.Add, contentDescription = "Add Tasbih")
+            // FloatingActionButton ko center mein laane ke liye Row ka istemal kiya gaya hai
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center
+            ) {
+                FloatingActionButton(onClick = { showAddDialog = true }) {
+                    Icon(Icons.Default.Add, contentDescription = "Add Tasbih")
+                }
             }
-        }
+        },
+        // floatingActionButton ko center mein position karne ke liye
+        floatingActionButtonPosition = FabPosition.Center
     ) { padding ->
         if (tasbihList.isEmpty()) {
             Box(modifier = Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
@@ -109,6 +115,7 @@ fun TasbihListScreen(
     }
 }
 
+// Baaki ka code (TasbihListItem, AddTasbihDialog) waisa hi rahega
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun TasbihListItem(tasbih: Tasbih, onClick: () -> Unit, onLongClick: () -> Unit) {

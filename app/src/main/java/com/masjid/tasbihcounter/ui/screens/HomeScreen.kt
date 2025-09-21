@@ -7,11 +7,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AddCircle
-import androidx.compose.material.icons.filled.History
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Place
-import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -31,8 +27,9 @@ import kotlin.math.sin
 @Composable
 fun HomeScreen(
     onStartCounting: () -> Unit,
-    onNavigateToHistory: () -> Unit,
-    onNavigateToSettings: () -> Unit
+    onNavigateToTheme: () -> Unit,
+    onNavigateToSettings: () -> Unit,
+    onNavigateToProgress: () -> Unit
 ) {
     val ivoryBackground = Color(0xFFFBF7EE)
     val tealPrimary = Color(0xFF14937C)
@@ -65,27 +62,32 @@ fun HomeScreen(
             ) {
                 NavigationBarItem(
                     selected = true,
-                    onClick = { /* Already on Home */ },
+                    onClick = { /* Home par hi hain */ },
                     icon = { Icon(Icons.Filled.Home, contentDescription = "Home") },
                     label = { Text("Home") }
                 )
                 NavigationBarItem(
                     selected = false,
-                    onClick = onNavigateToHistory,
-                    icon = { Icon(Icons.Filled.History, contentDescription = "History") },
-                    label = { Text("History") }
+                    onClick = onNavigateToTheme,
+                    icon = { Icon(Icons.Filled.ColorLens, contentDescription = "Theme") },
+                    label = { Text("Theme") }
                 )
+
+                // ## YAHAN PAR BADLAAV KIYA GAYA HAI ##
+                // Icon aur Naam wapas "Counter" kar diya gaya hai.
+                // Click karne par yeh Advanced Tasbih Collection kholega.
                 NavigationBarItem(
                     selected = false,
                     onClick = onStartCounting,
                     icon = { Icon(Icons.Default.AddCircle, contentDescription = "Counter") },
                     label = { Text("Counter") }
                 )
+
                 NavigationBarItem(
                     selected = false,
-                    onClick = { /* TODO: Implement Mosque Screen */ },
-                    icon = { Icon(Icons.Default.Place, contentDescription = "Mosque") },
-                    label = { Text("Mosque") }
+                    onClick = onNavigateToProgress,
+                    icon = { Icon(Icons.Default.BarChart, contentDescription = "Progress") },
+                    label = { Text("Progress") }
                 )
                 NavigationBarItem(
                     selected = false,
@@ -117,8 +119,9 @@ fun HomeScreen(
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 PaginationDots()
                 Spacer(modifier = Modifier.height(24.dp))
+                // Yeh button default counter (33/33/34) ko shuru karega
                 Button(
-                    onClick = onStartCounting,
+                    onClick = { /* TODO: Isko default counter se jodein ya hata dein */ },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(56.dp),
@@ -130,7 +133,7 @@ fun HomeScreen(
                     )
                 ) {
                     Text(
-                        "Start Counting",
+                        "Start Default Counter", // Naam badal diya gaya hai
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
                         letterSpacing = (16 * 0.01).sp
@@ -141,6 +144,7 @@ fun HomeScreen(
     }
 }
 
+// Baaki ka code (TasbihIllustration, PaginationDots) waisa hi rahega
 @Composable
 fun TasbihIllustration(
     modifier: Modifier = Modifier,

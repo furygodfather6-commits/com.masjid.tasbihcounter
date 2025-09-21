@@ -6,10 +6,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ColorLens
-import androidx.compose.material.icons.filled.List
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -24,7 +21,7 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.masjid.tasbihcounter.AppSettings
-import com.masjid.tasbihcounter.Tasbih
+import com.masjid.tasbihcounter.TasbihSequenceState
 import com.masjid.tasbihcounter.ThemeSetting
 import com.masjid.tasbihcounter.ui.theme.RetroTypography
 import kotlinx.coroutines.launch
@@ -32,7 +29,7 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CounterScreen(
-    tasbih: Tasbih,
+    sequenceState: TasbihSequenceState,
     settings: AppSettings,
     onIncrement: () -> Unit,
     onReset: () -> Unit,
@@ -45,12 +42,26 @@ fun CounterScreen(
     val coroutineScope = rememberCoroutineScope()
     val pulse = remember { Animatable(1f) }
 
+    val currentTasbih = sequenceState.currentTasbih
+
+    if (currentTasbih == null) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Text("No Tasbih loaded.")
+        }
+        return
+    }
+
     val animatedCount by animateIntAsState(
-        targetValue = tasbih.count,
+        targetValue = currentTasbih.count,
         animationSpec = spring(stiffness = Spring.StiffnessLow),
         label = "countAnimation"
     )
-    val progress = tasbih.count.toFloat() / tasbih.target.toFloat()
+
+    val progress = if (sequenceState.overallTarget > 0) {
+        sequenceState.totalCount.toFloat() / sequenceState.overallTarget.toFloat()
+    } else {
+        0f
+    }
     val animatedProgress by animateFloatAsState(
         targetValue = progress,
         animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
@@ -68,6 +79,8 @@ fun CounterScreen(
             TopAppBar(
                 title = { Text("") },
                 actions = {
+                    // ## YAHAN PAR BADLAAV KIYA GAYA HAI ##
+                    // My Tasbih Collection ka button wapas aa gaya hai
                     IconButton(onClick = onNavigateToList) {
                         Icon(Icons.Default.List, contentDescription = "Tasbih List", tint = MaterialTheme.colorScheme.onBackground)
                     }
@@ -100,7 +113,7 @@ fun CounterScreen(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = tasbih.name,
+                    text = currentTasbih.name,
                     style = typography.displayMedium,
                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f)
                 )
@@ -137,12 +150,18 @@ fun CounterScreen(
                 )
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
+                        text = "Cycle: ${sequenceState.cycleCount}",
+                        style = typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
                         text = "$animatedCount",
                         style = typography.displayLarge,
                         color = MaterialTheme.colorScheme.onBackground
                     )
                     Text(
-                        text = "Target: ${tasbih.target}",
+                        text = "Total: ${sequenceState.totalCount} / ${sequenceState.overallTarget}",
                         style = typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
                     )
@@ -163,6 +182,7 @@ fun CounterScreen(
     }
 }
 
+// AuroraRing function waisa hi rahega
 @Composable
 fun AuroraRing(
     modifier: Modifier = Modifier,
@@ -179,7 +199,6 @@ fun AuroraRing(
     )
 
     val brush = Brush.sweepGradient(colors)
-
     val innerRingColor = MaterialTheme.colorScheme.background.copy(alpha = 0.8f)
 
     Canvas(modifier = modifier.graphicsLayer {
@@ -188,7 +207,6 @@ fun AuroraRing(
         rotationZ = rotation
     }) {
         val strokeWidth = 80f
-
         drawArc(
             brush = Brush.sweepGradient(colors.map { it.copy(alpha = 0.3f) }),
             startAngle = 0f,
@@ -196,7 +214,6 @@ fun AuroraRing(
             useCenter = false,
             style = Stroke(width = strokeWidth + 40f)
         )
-
         drawArc(
             color = innerRingColor,
             startAngle = -90f,
